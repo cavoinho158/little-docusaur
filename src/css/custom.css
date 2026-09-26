@@ -4,27 +4,82 @@
  * work well for content-centric websites.
  */
 
-/* You can override the default Infima variables here. */
+/* ── Light mode palette ───────────────────────────────── */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-color-primary: #1d6fa4;
+  --ifm-color-primary-dark: #1a6495;
+  --ifm-color-primary-darker: #185e8c;
+  --ifm-color-primary-darkest: #134e74;
+  --ifm-color-primary-light: #2079b0;
+  --ifm-color-primary-lighter: #237fbb;
+  --ifm-color-primary-lightest: #2e8fcc;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  /* Light mode card & surface improvements */
+  --ifm-card-background-color: #ffffff;
+  --ifm-background-color: #f0f4f8;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-color-emphasis-100: #e8eef4;
+  --ifm-color-emphasis-200: #ccd8e4;
+  --ifm-color-emphasis-300: #adc0d0;
+  --ifm-color-emphasis-600: #4a6278;
+  --ifm-color-emphasis-700: #334d60;
+  --ifm-color-emphasis-800: #1e3344;
+  --ifm-color-emphasis-900: #0f1e2b;
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* ── Dark mode palette ────────────────────────────────── */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
+  --ifm-color-primary: #4db8e8;
+  --ifm-color-primary-dark: #2aaee3;
+  --ifm-color-primary-darker: #1aa4dc;
+  --ifm-color-primary-darkest: #1388b8;
+  --ifm-color-primary-light: #70c5ed;
+  --ifm-color-primary-lighter: #83cdf0;
+  --ifm-color-primary-lightest: #b0def6;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+
+  --ifm-background-color: #0f172a;
+  --ifm-background-surface-color: #1e293b;
+  --ifm-card-background-color: #1e293b;
+  --ifm-color-emphasis-100: #1e293b;
+  --ifm-color-emphasis-200: #334155;
+  --ifm-color-emphasis-300: #475569;
+  --ifm-color-emphasis-600: #94a3b8;
+  --ifm-color-emphasis-700: #cbd5e1;
+  --ifm-color-emphasis-800: #e2e8f0;
+  --ifm-color-emphasis-900: #f1f5f9;
+}
+
+/* Section alternate background in light mode */
+:root [class*="altSection"] {
+  background: var(--ifm-color-emphasis-100);
+}
+
+/* Navbar slightly opaque background in light mode */
+:root .navbar {
+  box-shadow: 0 1px 4px rgba(30, 51, 68, 0.12);
+}
+
+/* ── Dark mode: deeper backgrounds ────────────────────── */
+[data-theme='dark'] .navbar {
+  background-color: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  box-shadow: none;
+}
+
+[data-theme='dark'] .footer {
+  background-color: #080e1a;
+}
+
+/* ── Hero primary color fix for dark mode ─────────────── */
+[data-theme='dark'] .hero--primary {
+  --ifm-hero-background-color: #1e293b;
+  --ifm-hero-text-color: #e2e8f0;
+}
+
+/* ── Code blocks ──────────────────────────────────────── */
+:root pre {
+  border: 1px solid var(--ifm-color-emphasis-200);
 }

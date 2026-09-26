@@ -84,7 +84,7 @@ Chiến lược QLRR ATTT hiệu quả phải:
   - Bảng MS Project, Primavera
   - Biểu mẫu quản lý dự án doanh nghiệp
 
-:::tips
+:::tip
 
 _"Amateurs talk strategy; professionals talk logistics."_
 – General Omar Bradley

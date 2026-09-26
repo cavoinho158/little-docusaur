@@ -4,46 +4,49 @@ import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Easy to Use',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    title: '🛡️ SOC Operations & SIEM',
+    emoji: '📊',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Experienced with <strong>Splunk Enterprise/ES</strong>, <strong>Wazuh/OSSEC</strong>, and <strong>Elastic Stack</strong> for
+        real-time monitoring, alert triage, and incident investigation in SOC environments.
+        Currently contributing to SOC operations at <strong>VNCS Global</strong>.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    title: '⚔️ Detection Engineering',
+    emoji: '🎯',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Builds <strong>MITRE ATT&CK-mapped</strong> detection use cases correlating endpoint,
+        authentication, and network telemetry. Proficient with <strong>Sigma rules</strong>,
+        Splunk SPL, and IDS/IPS signatures. Runs attack simulations to validate and tune detections.
       </>
     ),
   },
   {
-    title: 'Powered by React',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: '🔍 IR & Digital Forensics',
+    emoji: '🧩',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Practiced incident response and malware analysis via <strong>CyberDefenders</strong> using
+        <strong> Wireshark</strong>, <strong>Volatility 3</strong>, <strong>FTK Imager</strong>, and
+        NetworkMiner. Built an endpoint security pipeline with OSSEC, ClamAV, and ELK Stack.
       </>
     ),
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({emoji, title, description}) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
+      <div className={clsx('card', styles.featureCard)}>
+        <div className={styles.featureEmoji}>{emoji}</div>
+        <div className="card__body">
+          <Heading as="h3" className={styles.featureTitle}>{title}</Heading>
+          <p className={styles.featureDesc}>{description}</p>
+        </div>
       </div>
     </div>
   );
@@ -53,6 +56,7 @@ export default function HomepageFeatures() {
   return (
     <section className={styles.features}>
       <div className="container">
+        <Heading as="h2" className={styles.sectionTitle}>What I Do</Heading>
         <div className="row">
           {FeatureList.map((props, idx) => (
             <Feature key={idx} {...props} />

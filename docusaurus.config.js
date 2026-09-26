@@ -12,8 +12,8 @@ import rehypeKatex from "rehype-katex";
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "little Whale's Site",
-  tagline: "Dinosaurs and Whales are cool",
+  title: "ThienAn's Cybersecurity Portfolio",
+  tagline: "SOC Analyst | SIEM Monitoring | Detection Engineering",
   favicon: "img/favicon.ico",
 
   // Set the production url of your site here
@@ -99,26 +99,36 @@ const config = {
     ({
       // Replace with your project's social card
       image: "img/docusaurus-social-card.jpg",
+      colorMode: {
+        defaultMode: "dark",
+        disableSwitch: false,
+        respectPrefersColorScheme: false,
+      },
       navbar: {
-        title: "My Site",
+        title: "ThienAn",
         logo: {
-          alt: "My Site Logo",
+          alt: "ThienAn Logo",
           src: "img/logo.svg",
         },
         items: [
           {
+            to: "/about",
+            label: "About Me",
+            position: "left",
+          },
+          {
             type: "docSidebar",
             sidebarId: "tutorialSidebar",
             position: "left",
-            label: "Study with little Whale",
+            label: "Knowledge Base",
           },
           {
             to: "/blog",
-            label: "little Whale's autobiography",
+            label: "Blog",
             position: "left",
           },
           {
-            href: "https://github.com/facebook/docusaurus",
+            href: "https://github.com/cavoinho158",
             label: "GitHub",
             position: "right",
           },
@@ -128,37 +138,41 @@ const config = {
         style: "dark",
         links: [
           {
-            title: "Community",
+            title: "Portfolio",
             items: [
               {
-                label: "Stack Overflow",
-                href: "https://stackoverflow.com/questions/tagged/docusaurus",
+                label: "About Me",
+                to: "/about",
               },
               {
-                label: "Discord",
-                href: "https://discordapp.com/invite/docusaurus",
+                label: "Knowledge Base",
+                to: "/docs/intro",
               },
               {
-                label: "X",
-                href: "https://x.com/docusaurus",
+                label: "Blog",
+                to: "/blog",
               },
             ],
           },
           {
-            title: "More",
+            title: "Connect",
             items: [
               {
-                label: "little Whale's autobiography",
-                to: "/blog",
+                label: "GitHub",
+                href: "https://github.com/cavoinho158",
               },
               {
-                label: "GitHub",
-                href: "https://github.com/facebook/docusaurus",
+                label: "LinkedIn",
+                href: "https://www.linkedin.com/in/an-pham-truong-thien",
+              },
+              {
+                label: "Email",
+                href: "mailto:anphamtrth@gmail.com",
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Phạm Trường Thiên Ân. Built with Docusaurus.`,
       },
       prism: {
         theme: prismThemes.github,
