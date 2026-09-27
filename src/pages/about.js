@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
 import Link from '@docusaurus/Link';
@@ -129,11 +130,29 @@ const alertFeed = [
   { severity: 'OK', text: 'Joined VNCS Global as SOC Contributor', time: 'Jun 2026' },
   { severity: 'OK', text: 'Completed 30+ CyberDefenders labs (DFIR & Threat Intel)', time: '2025–2026' },
   { severity: 'INFO', text: 'Earned SOC Level 1 & Google Cybersecurity certificates', time: '2025–2026' },
-  { severity: 'INFO', text: 'Upskilling: Threat Hunting, Cloud Security, ITSM & IAM, ...', time: 'Ongoing' },
+  { severity: 'INFO', text: 'Upskilling: Threat Hunting', time: 'Ongoing' },
+  { severity: 'INFO', text: 'Upskilling: Cloud Security (AWS, Google)', time: 'Ongoing' },
+  { severity: 'INFO', text: 'Upskilling: ITSM (Jira + Splunk ITSI)', time: 'Ongoing' },
+  { severity: 'INFO', text: 'Upskilling: IAM & PAM (CyberArk, Teleport)', time: 'Ongoing' },
 ];
 
 export default function About() {
   const avatarUrl = useBaseUrl('/img/avt.jpg');
+
+  const [startIndex, setStartIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStartIndex((prev) => (prev + 1) % alertFeed.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const visibleAlerts = [];
+  for (let i = 0; i < 4; i++) {
+    visibleAlerts.push(alertFeed[(startIndex + i) % alertFeed.length]);
+  }
+
   return (
     <Layout
       title="About Me | Phạm Trường Thiên Ân"
@@ -184,8 +203,8 @@ export default function About() {
                   </span>
                 </div>
                 <div className={styles.alertBody}>
-                  {alertFeed.map((item, i) => (
-                    <div key={i} className={styles.alertRow}>
+                  {visibleAlerts.map((item) => (
+                    <div key={item.text} className={styles.alertRow}>
                       <span className={item.severity === 'OK' ? styles.tagOk : styles.tagInfo}>
                         [{item.severity}]
                       </span>
