@@ -154,21 +154,21 @@ export default function About() {
                 <p className={styles.profilePrompt}><span className={styles.caret}>&gt;</span> whoami</p>
                 <Heading as="h1" className={styles.profileName}>Phạm Trường Thiên Ân</Heading>
                 <p className={styles.profileTitle}>
-                  <ShieldCheck size={21} strokeWidth={1.5} color={ACCENT} />
+                  <ShieldCheck size={15} strokeWidth={1.5} color={ACCENT} />
                   &nbsp;SOC Analyst | SIEM Monitoring | Detection Engineering
                 </p>
                 <p className={styles.profileLocation}>
-                  <MapPin size={20} strokeWidth={1.5} color="#6B7280" /> Ho Chi Minh City, Vietnam
+                  <MapPin size={14} strokeWidth={1.5} color="#6B7280" /> Ho Chi Minh City, Vietnam
                 </p>
                 <div className={styles.profileLinks}>
                   <Link href="mailto:anphamtrth@gmail.com" className={styles.profileLink}>
-                    <Mail size={20} strokeWidth={1.5} /> anphamtrth@gmail.com
+                    <Mail size={14} strokeWidth={1.5} /> anphamtrth@gmail.com
                   </Link>
                   <Link href="https://github.com/cavoinho158" className={styles.profileLink}>
-                    <ExternalLink size={20} strokeWidth={1.5} /> GitHub
+                    <ExternalLink size={14} strokeWidth={1.5} /> GitHub
                   </Link>
                   <Link href="https://www.linkedin.com/in/an-pham-truong-thien" className={styles.profileLink}>
-                    <Link2 size={20} strokeWidth={1.5} /> LinkedIn
+                    <Link2 size={14} strokeWidth={1.5} /> LinkedIn
                   </Link>
                 </div>
               </div>

@@ -74,9 +74,9 @@
 
 .profilePrompt {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.08rem;
+  font-size: 0.79rem;
   color: #6B7280;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.44rem;
   letter-spacing: 0.04em;
 }
 
@@ -86,30 +86,30 @@
 }
 
 .profileName {
-  font-size: 2.55rem;
+  font-size: 2.125rem;
   font-weight: 700;
   color: #F9FAFB !important;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .profileTitle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.17rem;
+  font-size: 0.86rem;
   color: #5EEAD4;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.28rem;
   letter-spacing: 0.02em;
 }
 
 .profileLocation {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  font-size: 1.2rem;
+  gap: 0.33rem;
+  font-size: 0.88rem;
   color: #6B7280;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.95rem;
 }
 
 .profileLinks {
@@ -121,13 +121,13 @@
 .profileLink {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.33rem;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.08rem;
+  font-size: 0.79rem;
   color: #9CA3AF !important;
   border: 1px solid rgba(94, 234, 212, 0.18);
-  border-radius: 4px;
-  padding: 0.33rem 0.9rem;
+  border-radius: 3px;
+  padding: 0.24rem 0.66rem;
   text-decoration: none !important;
   transition: border-color 0.2s, color 0.2s;
   white-space: nowrap;
