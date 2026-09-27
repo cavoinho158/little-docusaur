@@ -1,0 +1,59 @@
+.panel {
+  background: #111827;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.panel:hover {
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 30px;
+  padding: 0 0.85rem;
+  background: #1A2332;
+  border-bottom: 1px solid rgba(94, 234, 212, 0.18);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9CA3AF;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5EEAD4;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.panel:hover .dot {
+  opacity: 1;
+}
+
+.headerIcon {
+  display: flex;
+  align-items: center;
+  color: #5EEAD4;
+  flex-shrink: 0;
+}
+
+.title {
+  color: #9CA3AF;
+}
+
+.panel:hover .title {
+  color: #5EEAD4;
+}
+
+.body {
+  padding: 1.25rem;
+}

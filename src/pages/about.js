@@ -1,16 +1,34 @@
-import clsx from 'clsx';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
 import Link from '@docusaurus/Link';
 import useBaseUrl from '@docusaurus/useBaseUrl';
+import ConsolePanel from '@site/src/components/ConsolePanel';
+import {
+  ShieldCheck, Crosshair, Search, FlaskConical,
+  GraduationCap, MapPin, Briefcase, Mail, ExternalLink, Link2,
+  Award, Monitor, Wifi, Cpu, Terminal, Network,
+} from 'lucide-react';
 import styles from './about.module.css';
 
+const ACCENT = '#5EEAD4';
+const IC = { size: 15, strokeWidth: 1.5, color: ACCENT };
+const IC18 = { size: 18, strokeWidth: 1.5, color: ACCENT };
+
+/* ── Data ──────────────────────────────────────────────── */
 const skills = {
   'SOC & SIEM': ['Splunk Enterprise', 'Splunk ES', 'Wazuh/OSSEC', 'Elastic Stack'],
   'Detection & Monitoring': ['Sysmon', 'Windows Event Logs', 'MITRE ATT&CK', 'Sigma', 'Threat Hunting', 'Alert Triage'],
   'IR & Forensics': ['Wireshark', 'NetworkMiner', 'Volatility 3', 'FTK Imager', 'VirusTotal'],
   'Network & Security': ['Active Directory', 'IDS/IPS', 'Suricata', 'Zeek', 'pfSense', 'Nmap', 'Nessus'],
   'Scripting': ['Python', 'Bash', 'PowerShell'],
+};
+
+const skillIcons = {
+  'SOC & SIEM': <Monitor {...IC18} />,
+  'Detection & Monitoring': <Crosshair {...IC18} />,
+  'IR & Forensics': <Search {...IC18} />,
+  'Network & Security': <Network {...IC18} />,
+  'Scripting': <Terminal {...IC18} />,
 };
 
 const experience = [
@@ -31,7 +49,7 @@ const experience = [
 const projects = [
   {
     title: 'SOC Detection Engineering Lab — Splunk & MITRE ATT&CK',
-    type: 'Personal Project',
+    type: 'personal-project',
     year: '2026',
     bullets: [
       'Built an Active Directory attack-simulation lab and deployed Splunk Enterprise as the SIEM, ingesting Windows Security Logs, Sysmon, and PowerShell telemetry.',
@@ -41,7 +59,7 @@ const projects = [
   },
   {
     title: 'CVE-to-Detection Security Research & PoC',
-    type: 'Personal Project',
+    type: 'personal-project',
     year: '2026',
     bullets: [
       'Researched the workflow from CVE analysis to telemetry generation and detection development, using Sigma, Splunk SPL, and IDS/IPS signatures mapped to MITRE ATT&CK.',
@@ -50,7 +68,7 @@ const projects = [
   },
   {
     title: 'Endpoint Security, Malware Analysis & Digital Forensics',
-    type: 'Personal Project',
+    type: 'personal-project',
     year: '2025',
     bullets: [
       'Built an endpoint security pipeline (OSSEC, ClamAV, ELK Stack) and practiced malware/forensic investigation via CyberDefenders using Wireshark, Volatility 3, and FTK Imager.',
@@ -60,81 +78,58 @@ const projects = [
 ];
 
 const certifications = [
-  {
-    name: 'SOC Level 1 Learning Path',
-    issuer: 'TryHackMe',
-    year: '2026',
-  },
-  {
-    name: 'Google Cybersecurity Professional Certificate',
-    issuer: 'Coursera / Google',
-    year: '2025',
-  },
+  { name: 'SOC Level 1 Learning Path', issuer: 'TryHackMe', year: '2026' },
+  { name: 'Google Cybersecurity Professional Certificate', issuer: 'Coursera / Google', year: '2025' },
 ];
 
 const thmBadges = [
-  { name: 'Advanced Splunk', slug: 'advanced-splunk', url: 'https://tryhackme.com/thienanfa4869/badges/advanced-splunk' },
+  { name: 'Advanced Splunk', url: 'https://tryhackme.com/thienanfa4869/badges/advanced-splunk' },
 ];
 
 const cdCategories = [
   {
-    name: 'Endpoint Forensics',
-    icon: '💻',
-    color: '#3b82f6',
+    name: 'Endpoint Forensics', icon: <Cpu size={13} strokeWidth={1.5} />, color: '#3b82f6',
     labs: [
-      { name: 'KrakenKeylogger', difficulty: 'Medium' },
-      { name: 'Silent Breach', difficulty: 'Medium' },
-      { name: 'Amadey - APT-C-36', difficulty: 'Medium' },
-      { name: 'RedLine', difficulty: 'Easy' },
-      { name: 'The Crime', difficulty: 'Easy' },
-      { name: 'Ramnit', difficulty: 'Easy' },
-      { name: 'Insider', difficulty: 'Easy' },
-      { name: 'Reveal', difficulty: 'Easy' },
+      { name: 'KrakenKeylogger', difficulty: 'Medium' }, { name: 'Silent Breach', difficulty: 'Medium' },
+      { name: 'Amadey - APT-C-36', difficulty: 'Medium' }, { name: 'RedLine', difficulty: 'Easy' },
+      { name: 'The Crime', difficulty: 'Easy' }, { name: 'Ramnit', difficulty: 'Easy' },
+      { name: 'Insider', difficulty: 'Easy' }, { name: 'Reveal', difficulty: 'Easy' },
     ],
   },
   {
-    name: 'Network Forensics',
-    icon: '🌐',
-    color: '#10b981',
+    name: 'Network Forensics', icon: <Wifi size={13} strokeWidth={1.5} />, color: '#10b981',
     labs: [
-      { name: 'HawkEye', difficulty: 'Medium' },
-      { name: 'Lockdown', difficulty: 'Easy' },
-      { name: 'Web Investigation', difficulty: 'Easy' },
-      { name: 'PacketDetective', difficulty: 'Easy' },
-      { name: 'PsExec Hunt', difficulty: 'Easy' },
-      { name: 'PoisonedCredentials', difficulty: 'Easy' },
-      { name: 'WebStrike', difficulty: 'Easy' },
-      { name: 'XLMRat', difficulty: 'Easy' },
-      { name: 'Tomcat Takeover', difficulty: 'Easy' },
-      { name: 'DanaBot', difficulty: 'Easy' },
+      { name: 'HawkEye', difficulty: 'Medium' }, { name: 'Lockdown', difficulty: 'Easy' },
+      { name: 'Web Investigation', difficulty: 'Easy' }, { name: 'PacketDetective', difficulty: 'Easy' },
+      { name: 'PsExec Hunt', difficulty: 'Easy' }, { name: 'PoisonedCredentials', difficulty: 'Easy' },
+      { name: 'WebStrike', difficulty: 'Easy' }, { name: 'XLMRat', difficulty: 'Easy' },
+      { name: 'Tomcat Takeover', difficulty: 'Easy' }, { name: 'DanaBot', difficulty: 'Easy' },
     ],
   },
   {
-    name: 'Threat Intel',
-    icon: '🕵️',
-    color: '#f59e0b',
+    name: 'Threat Intel', icon: <Search size={13} strokeWidth={1.5} />, color: '#f59e0b',
     labs: [
-      { name: 'PhishStrike', difficulty: 'Medium' },
-      { name: 'Intel101', difficulty: 'Medium' },
-      { name: 'Tusk Infostealer', difficulty: 'Easy' },
-      { name: 'GrabThePhisher', difficulty: 'Easy' },
-      { name: '3CX Supply Chain', difficulty: 'Easy' },
-      { name: 'Red Stealer', difficulty: 'Easy' },
-      { name: 'Lespion', difficulty: 'Easy' },
-      { name: 'Yellow RAT', difficulty: 'Easy' },
-      { name: 'Oski', difficulty: 'Easy' },
-      { name: 'IcedID', difficulty: 'Easy' },
+      { name: 'PhishStrike', difficulty: 'Medium' }, { name: 'Intel101', difficulty: 'Medium' },
+      { name: 'Tusk Infostealer', difficulty: 'Easy' }, { name: 'GrabThePhisher', difficulty: 'Easy' },
+      { name: '3CX Supply Chain', difficulty: 'Easy' }, { name: 'Red Stealer', difficulty: 'Easy' },
+      { name: 'Lespion', difficulty: 'Easy' }, { name: 'Yellow RAT', difficulty: 'Easy' },
+      { name: 'Oski', difficulty: 'Easy' }, { name: 'IcedID', difficulty: 'Easy' },
     ],
   },
   {
-    name: 'Malware Analysis',
-    icon: '🦠',
-    color: '#ef4444',
+    name: 'Malware Analysis', icon: <FlaskConical size={13} strokeWidth={1.5} />, color: '#ef4444',
     labs: [
-      { name: 'XWorm', difficulty: 'Medium' },
-      { name: 'FakeGPT', difficulty: 'Easy' },
+      { name: 'XWorm', difficulty: 'Medium' }, { name: 'FakeGPT', difficulty: 'Easy' },
     ],
   },
+];
+
+/* ── Component ─────────────────────────────────────────── */
+const alertFeed = [
+  { severity: 'OK', text: 'Joined VNCS Global as SOC Contributor', time: 'Jun 2026' },
+  { severity: 'OK', text: 'Completed 30+ CyberDefenders labs (DFIR & Threat Intel)', time: '2025–2026' },
+  { severity: 'INFO', text: 'Earned SOC Level 1 & Google Cybersecurity certificates', time: '2025–2026' },
+  { severity: 'INFO', text: 'Upskilling: Threat Hunting, Cloud Security, ITSM & IAM, ...', time: 'Ongoing' },
 ];
 
 export default function About() {
@@ -142,268 +137,231 @@ export default function About() {
   return (
     <Layout
       title="About Me | Phạm Trường Thiên Ân"
-      description="SOC Analyst Portfolio - Phạm Trường Thiên Ân | Cybersecurity graduate specializing in SIEM, Detection Engineering, and Incident Response">
-      <div className={styles.pageWrapper}>
+      description="SOC Analyst Portfolio — Phạm Trường Thiên Ân | Cybersecurity graduate specializing in SIEM, Detection Engineering, and Incident Response">
+      <div className={styles.page}>
 
-        {/* Hero / Profile section */}
+        {/* ── Profile hero ──────────────────────────────── */}
         <section className={styles.profileSection}>
           <div className={styles.profileBg} aria-hidden="true" />
           <div className="container">
             <div className={styles.profileCard}>
 
-              {/* Avatar */}
               <div className={styles.profileAvatarWrap}>
-                <img
-                  src={avatarUrl}
-                  alt="Phạm Trường Thiên Ân"
-                  className={styles.profileAvatar}
-                />
+                <img src={avatarUrl} alt="Phạm Trường Thiên Ân" className={styles.profileAvatar} />
               </div>
 
-              {/* Name + links */}
               <div className={styles.profileInfo}>
-                <Heading as="h1" className={styles.profileName}>
-                  Phạm Trường Thiên Ân
-                </Heading>
+                <p className={styles.profilePrompt}><span className={styles.caret}>&gt;</span> whoami</p>
+                <Heading as="h1" className={styles.profileName}>Phạm Trường Thiên Ân</Heading>
                 <p className={styles.profileTitle}>
-                  🛡️ SOC Analyst | SIEM Monitoring | Detection Engineering
+                  <ShieldCheck size={21} strokeWidth={1.5} color={ACCENT} />
+                  &nbsp;SOC Analyst | SIEM Monitoring | Detection Engineering
                 </p>
-                <p className={styles.profileLocation}>📍 Ho Chi Minh City, Vietnam</p>
+                <p className={styles.profileLocation}>
+                  <MapPin size={20} strokeWidth={1.5} color="#6B7280" /> Ho Chi Minh City, Vietnam
+                </p>
                 <div className={styles.profileLinks}>
                   <Link href="mailto:anphamtrth@gmail.com" className={styles.profileLink}>
-                    ✉️ anphamtrth@gmail.com
+                    <Mail size={20} strokeWidth={1.5} /> anphamtrth@gmail.com
                   </Link>
                   <Link href="https://github.com/cavoinho158" className={styles.profileLink}>
-                    🐙 GitHub
+                    <ExternalLink size={20} strokeWidth={1.5} /> GitHub
                   </Link>
                   <Link href="https://www.linkedin.com/in/an-pham-truong-thien" className={styles.profileLink}>
-                    💼 LinkedIn
+                    <Link2 size={20} strokeWidth={1.5} /> LinkedIn
                   </Link>
                 </div>
               </div>
 
-              {/* Stats panel */}
-              <div className={styles.profileStats}>
-                <div className={styles.statItem}>
-                  <span className={styles.statIcon}>🎓</span>
-                  <div>
-                    <p className={styles.statValue}>8.39 / 10</p>
-                    <p className={styles.statLabel}>GPA · UIT-VNU HCM</p>
-                  </div>
+              {/* ── Alert Feed panel ──────────────────────── */}
+              <div className={styles.alertPanel}>
+                <div className={styles.alertHeader}>
+                  <span className={styles.alertDot} />
+                  <span className={styles.alertTitle}>alert-feed.log</span>
+                  <span className={styles.liveBadge}>
+                    <span className={styles.livePulse} />
+                    LIVE
+                  </span>
                 </div>
-                <div className={styles.statItem}>
-                  <span className={styles.statIcon}>💼</span>
-                  <div>
-                    <p className={styles.statValue}>Jun 2026 – Now</p>
-                    <p className={styles.statLabel}>SOC @ VNCS Global</p>
-                  </div>
-                </div>
-                <div className={styles.statItem}>
-                  <span className={styles.statIcon}>🔬</span>
-                  <div>
-                    <p className={styles.statValue}>30+ Labs</p>
-                    <p className={styles.statLabel}>CyberDefenders · DFIR & Threat Intel</p>
-                  </div>
-                </div>
-                <div className={styles.statItem}>
-                  <span className={styles.statIcon}>📜</span>
-                  <div>
-                    <p className={styles.statValue}>2 Certifications</p>
-                    <p className={styles.statLabel}>TryHackMe SOC L1 · Google Cybersecurity</p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-        {/* Professional Summary */}
-        <section className={styles.section}>
-          <div className="container">
-            <Heading as="h2" className={styles.sectionHeading}>Professional Summary</Heading>
-            <div className={styles.summaryCard}>
-              <p>
-                Cybersecurity graduate (<strong>B.Sc. in Information Security, GPA 8.39/10</strong>) focused on SOC operations.
-                Hands-on experience with <strong>Splunk</strong>, <strong>Wazuh/OSSEC</strong>, and the <strong>Elastic Stack</strong> for
-                SIEM monitoring, alert triage, and MITRE ATT&CK-mapped detection engineering, plus incident investigation
-                and digital forensics in lab environments.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Experience */}
-        <section className={clsx(styles.section, styles.altSection)}>
-          <div className="container">
-            <Heading as="h2" className={styles.sectionHeading}>Professional Experience</Heading>
-            {experience.map((exp, idx) => (
-              <div key={idx} className={styles.timelineItem}>
-                <div className={styles.timelineHeader}>
-                  <div>
-                    <Heading as="h3" className={styles.timelineTitle}>{exp.title}</Heading>
-                    <p className={styles.timelineCompany}>{exp.company} · {exp.location}</p>
-                  </div>
-                  <span className={styles.timelinePeriod}>{exp.period}</span>
-                </div>
-                <ul className={styles.bulletList}>
-                  {exp.bullets.map((b, i) => <li key={i}>{b}</li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Key Projects */}
-        <section className={styles.section}>
-          <div className="container">
-            <Heading as="h2" className={styles.sectionHeading}>Key Projects</Heading>
-            <div className={styles.projectGrid}>
-              {projects.map((proj, idx) => (
-                <div key={idx} className={styles.projectCard}>
-                  <div className={styles.projectHeader}>
-                    <Heading as="h3" className={styles.projectTitle}>{proj.title}</Heading>
-                    <span className={styles.projectYear}>{proj.type} · {proj.year}</span>
-                  </div>
-                  <ul className={styles.bulletList}>
-                    {proj.bullets.map((b, i) => <li key={i}>{b}</li>)}
-                  </ul>
-                  <div className={styles.tagRow}>
-                    {proj.tags.map((tag, i) => (
-                      <span key={i} className={styles.tag}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Technical Skills */}
-        <section className={clsx(styles.section, styles.altSection)}>
-          <div className="container">
-            <Heading as="h2" className={styles.sectionHeading}>Technical Skills</Heading>
-            <div className={styles.skillsGrid}>
-              {Object.entries(skills).map(([category, items]) => (
-                <div key={category} className={styles.skillCategory}>
-                  <Heading as="h4" className={styles.skillCategoryTitle}>{category}</Heading>
-                  <div className={styles.tagRow}>
-                    {items.map((item, i) => (
-                      <span key={i} className={styles.skillTag}>{item}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Education & Certifications */}
-        <section className={styles.section}>
-          <div className="container">
-            <Heading as="h2" className={styles.sectionHeading}>Education & Certifications</Heading>
-            <div className={styles.eduCard}>
-              <div className={styles.timelineHeader}>
-                <div>
-                  <Heading as="h3" className={styles.timelineTitle}>
-                    B.Sc. in Information Security
-                  </Heading>
-                  <p className={styles.timelineCompany}>University of Information Technology (VNU-HCM)</p>
-                </div>
-                <div className={styles.gpaBlock}>
-                  <span className={styles.gpa}>GPA 8.39/10</span>
-                  <span className={styles.timelinePeriod}>Oct 2022 – Mar 2026</span>
-                </div>
-              </div>
-            </div>
-            <div className={styles.certGrid}>
-              {certifications.map((cert, idx) => (
-                <div key={idx} className={styles.certCard}>
-                  <span className={styles.certIcon}>🏅</span>
-                  <div>
-                    <p className={styles.certName}>{cert.name}</p>
-                    <p className={styles.certIssuer}>{cert.issuer} · {cert.year}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Achievements & Practice Platforms */}
-        <section className={styles.section}>
-          <div className="container">
-            <Heading as="h2" className={styles.sectionHeading}>Achievements &amp; Practice</Heading>
-
-            {/* ── TryHackMe ── */}
-            <div className={styles.platformBlock}>
-              <div className={styles.platformBlockHeader}>
-                <span className={styles.platformIcon}>🟥</span>
-                <div>
-                  <Heading as="h3" className={styles.platformTitle}>TryHackMe</Heading>
-                  <p className={styles.platformSub}>
-                    <strong>thienanfa4869</strong> · SOC Level 1 Learning Path (2026)
-                  </p>
-                </div>
-                <Link href="https://tryhackme.com/p/thienanfa4869" className={styles.platformLinkBtn}>
-                  View Profile ↗
-                </Link>
-              </div>
-              <div className={styles.thmBadgeRow}>
-                <p className={styles.badgeRowLabel}>🏅 Earned Badges</p>
-                <div className={styles.thmBadgeChips}>
-                  {thmBadges.map((b, i) => (
-                    <Link key={i} href={b.url} className={styles.thmBadgeChip}>
-                      <span className={styles.thmBadgeChipIcon}>🎖️</span>
-                      <span>{b.name}</span>
-                    </Link>
+                <div className={styles.alertBody}>
+                  {alertFeed.map((item, i) => (
+                    <div key={i} className={styles.alertRow}>
+                      <span className={item.severity === 'OK' ? styles.tagOk : styles.tagInfo}>
+                        [{item.severity}]
+                      </span>
+                      <div className={styles.alertContent}>
+                        <span className={styles.alertText}>{item.text}</span>
+                        <span className={styles.alertTime}>{item.time}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* ── CyberDefenders ── */}
-            <div className={styles.platformBlock}>
-              <div className={styles.platformBlockHeader}>
-                <span className={styles.platformIcon}>🔵</span>
-                <div>
-                  <Heading as="h3" className={styles.platformTitle}>CyberDefenders</Heading>
-                  <p className={styles.platformSub}>
-                    <strong>thienanfa4869</strong> · {cdCategories.reduce((acc, c) => acc + c.labs.length, 0)} labs completed
-                  </p>
-                </div>
-                <Link href="https://cyberdefenders.org/p/thienanfa4869" className={styles.platformLinkBtn}>
-                  View Profile ↗
-                </Link>
-              </div>
-              <div className={styles.cdGrid}>
-                {cdCategories.map((cat, ci) => (
-                  <div key={ci} className={styles.cdCategoryCard} style={{'--cat-color': cat.color}}>
-                    <div className={styles.cdCategoryHeader}>
-                      <span className={styles.cdCategoryIcon}>{cat.icon}</span>
-                      <span className={styles.cdCategoryName}>{cat.name}</span>
-                      <span className={styles.cdCategoryCount}>{cat.labs.length} labs</span>
-                    </div>
-                    <div className={styles.cdLabList}>
-                      {cat.labs.map((lab, li) => (
-                        <div key={li} className={styles.cdLabItem}>
-                          <span className={styles.cdLabName}>{lab.name}</span>
-                          <span className={lab.difficulty === 'Medium'
-                            ? styles.diffMedium
-                            : styles.diffEasy}>
-                            {lab.difficulty}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
-
           </div>
         </section>
 
+        {/* ── Main content ───────────────────────────────── */}
+        <div className={styles.main}>
+
+          {/* Professional Summary */}
+          <section className={styles.section}>
+            <div className="container">
+              <p className={styles.sectionLabel}>// professional-summary</p>
+              <ConsolePanel icon={<ShieldCheck {...IC18} />} title="summary.txt">
+                <p className={styles.summaryText}>
+                  Cybersecurity graduate (<strong>B.Sc. in Information Security, GPA 8.39/10</strong>) focused on SOC operations.
+                  Hands-on experience with <strong>Splunk</strong>, <strong>Wazuh/OSSEC</strong>, and the <strong>Elastic Stack</strong> for
+                  SIEM monitoring, alert triage, and MITRE ATT&amp;CK-mapped detection engineering, plus incident investigation
+                  and digital forensics in lab environments.
+                </p>
+              </ConsolePanel>
+            </div>
+          </section>
+
+          {/* Professional Experience */}
+          <section className={styles.section}>
+            <div className="container">
+              <p className={styles.sectionLabel}>// professional-experience</p>
+              {experience.map((exp, i) => (
+                <ConsolePanel key={i} icon={<Briefcase {...IC18} />} title={`experience[${i}]`} className={styles.expPanel}>
+                  <div className={styles.expHeader}>
+                    <div>
+                      <h3 className={styles.expTitle}>{exp.title}</h3>
+                      <p className={styles.expCompany}>{exp.company}</p>
+                    </div>
+                    <span className={styles.expPeriod}>{exp.period}</span>
+                  </div>
+                  <ul className={styles.expBullets}>
+                    {exp.bullets.map((b, j) => <li key={j}>{b}</li>)}
+                  </ul>
+                </ConsolePanel>
+              ))}
+            </div>
+          </section>
+
+          {/* Key Projects */}
+          <section className={styles.section}>
+            <div className="container">
+              <p className={styles.sectionLabel}>// key-projects</p>
+              <div className={styles.projectGrid}>
+                {projects.map((proj, i) => (
+                  <ConsolePanel key={i} icon={<Crosshair {...IC18} />} title={`project[${i}] // ${proj.year}`}>
+                    <h3 className={styles.projTitle}>{proj.title}</h3>
+                    <ul className={styles.projBullets}>
+                      {proj.bullets.map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                    <div className={styles.tags}>
+                      {proj.tags.map((t, j) => <span key={j} className={styles.tag}>{t}</span>)}
+                    </div>
+                  </ConsolePanel>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Technical Skills */}
+          <section className={styles.section}>
+            <div className="container">
+              <p className={styles.sectionLabel}>// technical-skills</p>
+              <div className={styles.skillGrid}>
+                {Object.entries(skills).map(([cat, items], i) => (
+                  <ConsolePanel key={i} icon={skillIcons[cat]} title={cat.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}>
+                    <div className={styles.skillTags}>
+                      {items.map((s, j) => <span key={j} className={styles.skillTag}>{s}</span>)}
+                    </div>
+                  </ConsolePanel>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Education & Certifications */}
+          <section className={styles.section}>
+            <div className="container">
+              <p className={styles.sectionLabel}>// education-and-certs</p>
+              <ConsolePanel icon={<GraduationCap {...IC18} />} title="education" className={styles.eduPanel}>
+                <div className={styles.eduHeader}>
+                  <div>
+                    <h3 className={styles.eduTitle}>B.Sc. in Information Security</h3>
+                    <p className={styles.eduInstitution}>University of Information Technology (VNU-HCM)</p>
+                  </div>
+                  <div className={styles.eduMeta}>
+                    <span className={styles.gpa}>GPA 8.39/10</span>
+                    <span className={styles.period}>Oct 2022 – Mar 2026</span>
+                  </div>
+                </div>
+              </ConsolePanel>
+              <div className={styles.certGrid}>
+                {certifications.map((c, i) => (
+                  <ConsolePanel key={i} icon={<Award {...IC18} />} title={`cert[${i}]`}>
+                    <p className={styles.certName}>{c.name}</p>
+                    <p className={styles.certIssuer}>{c.issuer} · {c.year}</p>
+                  </ConsolePanel>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Achievements & Practice */}
+          <section className={styles.section}>
+            <div className="container">
+              <p className={styles.sectionLabel}>// achievements-and-practice</p>
+
+              {/* TryHackMe */}
+              <ConsolePanel icon={<Award {...IC18} />} title="tryhackme // thienanfa4869" className={styles.platformPanel}>
+                <div className={styles.platformMeta}>
+                  <span className={styles.platformDetail}>SOC Level 1 Learning Path · 2026</span>
+                  <Link href="https://tryhackme.com/p/thienanfa4869" className={styles.platformLink}>
+                    view profile ↗
+                  </Link>
+                </div>
+                <p className={styles.badgeRowLabel}>earned-badges</p>
+                <div className={styles.badgeChips}>
+                  {thmBadges.map((b, i) => (
+                    <Link key={i} href={b.url} className={styles.badgeChip}>
+                      <Award size={12} strokeWidth={1.5} /> {b.name}
+                    </Link>
+                  ))}
+                </div>
+              </ConsolePanel>
+
+              {/* CyberDefenders */}
+              <ConsolePanel icon={<Search {...IC18} />} title={`cyberdefenders // ${cdCategories.reduce((a, c) => a + c.labs.length, 0)} labs`} className={styles.platformPanel}>
+                <div className={styles.platformMeta}>
+                  <span className={styles.platformDetail}>Blue Team CTF · DFIR · Malware Analysis · Threat Intel</span>
+                  <Link href="https://cyberdefenders.org/p/thienanfa4869" className={styles.platformLink}>
+                    view profile ↗
+                  </Link>
+                </div>
+                <div className={styles.cdGrid}>
+                  {cdCategories.map((cat, ci) => (
+                    <div key={ci} className={styles.cdCard} style={{ '--cat-color': cat.color }}>
+                      <div className={styles.cdCardHeader}>
+                        <span style={{ color: cat.color }}>{cat.icon}</span>
+                        <span className={styles.cdCatName}>{cat.name}</span>
+                        <span className={styles.cdCount}>{cat.labs.length}</span>
+                      </div>
+                      <div className={styles.cdLabList}>
+                        {cat.labs.map((lab, li) => (
+                          <div key={li} className={styles.cdLabItem}>
+                            <span className={styles.cdLabName}>{lab.name}</span>
+                            <span className={lab.difficulty === 'Medium' ? styles.diffMedium : styles.diffEasy}>
+                              {lab.difficulty}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ConsolePanel>
+
+            </div>
+          </section>
+
+        </div>
       </div>
     </Layout>
   );

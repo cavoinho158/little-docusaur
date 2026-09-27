@@ -87,6 +87,10 @@ const config = {
   ],
   stylesheets: [
     {
+      href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap",
+      type: "text/css",
+    },
+    {
       href: "https://cdn.jsdelivr.net/npm/katex@0.13.24/dist/katex.min.css",
       type: "text/css",
       integrity:
@@ -101,7 +105,7 @@ const config = {
       image: "img/docusaurus-social-card.jpg",
       colorMode: {
         defaultMode: "dark",
-        disableSwitch: false,
+        disableSwitch: true,
         respectPrefersColorScheme: false,
       },
       navbar: {
@@ -175,8 +179,9 @@ const config = {
         copyright: `Copyright © ${new Date().getFullYear()} Phạm Trường Thiên Ân. Built with Docusaurus.`,
       },
       prism: {
-        theme: prismThemes.github,
-        darkTheme: prismThemes.dracula,
+        theme: prismThemes.vsDark,
+        darkTheme: prismThemes.vsDark,
+        additionalLanguages: ['bash', 'json', 'yaml', 'python', 'powershell'],
       },
     }),
 };

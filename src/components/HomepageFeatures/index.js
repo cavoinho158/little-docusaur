@@ -1,65 +1,51 @@
-import clsx from 'clsx';
-import Heading from '@theme/Heading';
+import ConsolePanel from '@site/src/components/ConsolePanel';
+import { ShieldCheck, Crosshair, Search } from 'lucide-react';
 import styles from './styles.module.css';
 
-const FeatureList = [
+const ICON_SIZE = 18;
+const ICON_STROKE = 1.5;
+const ICON_COLOR = '#5EEAD4';
+
+const features = [
   {
-    title: '🛡️ SOC Operations & SIEM',
-    emoji: '📊',
-    description: (
-      <>
-        Experienced with <strong>Splunk Enterprise/ES</strong>, <strong>Wazuh/OSSEC</strong>, and <strong>Elastic Stack</strong> for
-        real-time monitoring, alert triage, and incident investigation in SOC environments.
-        Currently contributing to SOC operations at <strong>VNCS Global</strong>.
-      </>
-    ),
+    icon: <ShieldCheck size={ICON_SIZE} strokeWidth={ICON_STROKE} color={ICON_COLOR} />,
+    title: 'soc-operations',
+    label: 'SOC Operations & SIEM',
+    desc: 'Alert triage, log correlation, and incident handling using Splunk, Wazuh/OSSEC, and the Elastic Stack (ELK). Experienced in tuning dashboards, reducing false-positive rates, and documenting analyst runbooks.',
+    tags: ['Splunk', 'Wazuh', 'ELK Stack', 'SIEM', 'Alert Triage'],
   },
   {
-    title: '⚔️ Detection Engineering',
-    emoji: '🎯',
-    description: (
-      <>
-        Builds <strong>MITRE ATT&CK-mapped</strong> detection use cases correlating endpoint,
-        authentication, and network telemetry. Proficient with <strong>Sigma rules</strong>,
-        Splunk SPL, and IDS/IPS signatures. Runs attack simulations to validate and tune detections.
-      </>
-    ),
+    icon: <Crosshair size={ICON_SIZE} strokeWidth={ICON_STROKE} color={ICON_COLOR} />,
+    title: 'detection-engineering',
+    label: 'Detection Engineering',
+    desc: 'Designing and validating detection rules mapped to MITRE ATT&CK — covering persistence, lateral movement, and C2 techniques. Focused on minimising noise while maintaining high-fidelity coverage.',
+    tags: ['MITRE ATT&CK', 'Sigma Rules', 'Detection Rules', 'YARA'],
   },
   {
-    title: '🔍 IR & Digital Forensics',
-    emoji: '🧩',
-    description: (
-      <>
-        Practiced incident response and malware analysis via <strong>CyberDefenders</strong> using
-        <strong> Wireshark</strong>, <strong>Volatility 3</strong>, <strong>FTK Imager</strong>, and
-        NetworkMiner. Built an endpoint security pipeline with OSSEC, ClamAV, and ELK Stack.
-      </>
-    ),
+    icon: <Search size={ICON_SIZE} strokeWidth={ICON_STROKE} color={ICON_COLOR} />,
+    title: 'dfir-forensics',
+    label: 'IR & Digital Forensics',
+    desc: 'Hands-on incident investigation and forensic analysis via CyberDefenders labs — memory forensics with Volatility 3, disk imaging with FTK Imager, network capture analysis with Wireshark.',
+    tags: ['Volatility 3', 'FTK Imager', 'Wireshark', 'NetworkMiner', 'DFIR'],
   },
 ];
 
-function Feature({emoji, title, description}) {
-  return (
-    <div className={clsx('col col--4')}>
-      <div className={clsx('card', styles.featureCard)}>
-        <div className={styles.featureEmoji}>{emoji}</div>
-        <div className="card__body">
-          <Heading as="h3" className={styles.featureTitle}>{title}</Heading>
-          <p className={styles.featureDesc}>{description}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function HomepageFeatures() {
   return (
-    <section className={styles.features}>
+    <section className={styles.section}>
       <div className="container">
-        <Heading as="h2" className={styles.sectionTitle}>What I Do</Heading>
-        <div className="row">
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
+        <p className={styles.sectionLabel}>// what i do</p>
+        <div className={styles.grid}>
+          {features.map((f, i) => (
+            <ConsolePanel key={i} icon={f.icon} title={f.title}>
+              <h3 className={styles.featureTitle}>{f.label}</h3>
+              <p className={styles.featureDesc}>{f.desc}</p>
+              <div className={styles.tags}>
+                {f.tags.map((t, j) => (
+                  <span key={j} className={styles.tag}>{t}</span>
+                ))}
+              </div>
+            </ConsolePanel>
           ))}
         </div>
       </div>
