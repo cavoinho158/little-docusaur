@@ -1,0 +1,10 @@
+{
+  "label": "SOC Operations",
+  "position": 3,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Kiến thức SOC thực chiến — SIEM, Detection Engineering, Wazuh, Splunk, MITRE ATT&CK."
+  }
+}

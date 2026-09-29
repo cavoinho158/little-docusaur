@@ -1,0 +1,10 @@
+{
+  "label": "Labs & Practice",
+  "position": 4,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Writeup, ghi chú lab và báo cáo thực tập — CyberDefenders, Endpoint Security, Internship."
+  }
+}

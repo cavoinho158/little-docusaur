@@ -1,0 +1,10 @@
+{
+  "label": "Foundations",
+  "position": 2,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Kiến thức nền tảng về bảo mật thông tin — Risk Management và Google Cybersecurity Certificate."
+  }
+}

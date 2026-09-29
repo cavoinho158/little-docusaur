@@ -121,10 +121,9 @@ const config = {
             position: "left",
           },
           {
-            type: "docSidebar",
-            sidebarId: "tutorialSidebar",
-            position: "left",
+            to: "/docs/intro",
             label: "Knowledge Base",
+            position: "left",
           },
           {
             to: "/blog",
