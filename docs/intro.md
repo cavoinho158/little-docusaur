@@ -34,6 +34,7 @@ Bộ tài liệu ôn tập các công cụ và quy trình cốt lõi của SOC, 
 | [AD Attack Detection (Splunk)](./02-soc-operations/ad-detection-logic) | Logic phát hiện Kerberoasting, AS-REP Roasting, DCSync, Pass-the-Hash, Golden Ticket | ✅ Hoàn thành |
 | [ITSM & SOC Workflow (Jira/Splunk)](./02-soc-operations/itsm-incident-workflow) | Kiến trúc ITSM/ITIL, Jira Service Management, tích hợp Splunk ES/ITSI trong SOC | ✅ Hoàn thành |
 | [Wazuh & Elastic Pipeline](./02-soc-operations/wazuh-siem-pipeline) | Cấu hình Filebeat/Winlogbeat, Logstash Grok, Wazuh Agent, Custom Rule/Decoder | ✅ Hoàn thành |
+| [Microsoft 365 for SOC](./02-soc-operations/microsoft365-soc) | Cấu hình log, baseline hành vi bình thường, phân tích cấu trúc log, KQL & SPL detection rules | ✅ Mới |
 
 ---
 

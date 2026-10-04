@@ -23,7 +23,7 @@ html { color-scheme: dark; }
 
   /* Backgrounds */
   --ifm-background-color:         #0A0E14;
-  --ifm-background-surface-color: #111827;
+  --ifm-background-surface-color: #0A0E14;
   --ifm-card-background-color:    #111827;
   --ifm-hover-overlay:            rgba(94, 234, 212, 0.06);
 
