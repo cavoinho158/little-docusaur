@@ -122,6 +122,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Layout containers (docs & blog) — unify bg ───────── */
+/* Docusaurus wraps main content in a surface-colored div;
+   override it so the entire page stays one solid color.  */
+.main-wrapper,
+[class*='docMainContainer'],
+[class*='docPage'],
+[class*='blogListPage'],
+[class*='blogPostPage'],
+[class*='blogTagsListPage'],
+[class*='blogTagsPostsPage'] {
+  background: var(--console-bg) !important;
+}
+
 /* ── Navbar ───────────────────────────────────────────── */
 .navbar {
   background: var(--console-bg) !important;
@@ -164,7 +177,7 @@ body {
 
 /* ── Sidebar ──────────────────────────────────────────── */
 .menu {
-  background: #080C12 !important;
+  background: var(--console-bg) !important;
   border-right: 1px solid var(--console-border);
 }
 
