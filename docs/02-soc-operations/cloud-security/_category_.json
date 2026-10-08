@@ -1,0 +1,10 @@
+{
+  "label": "AWS Cloud Security for SOC",
+  "position": 5,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Lộ trình đào tạo và cẩm nang thực chiến Cloud Security & Detection Engineering trên AWS: Nền tảng hạ tầng, Mô hình ủy quyền, Bề mặt tấn công, Giám sát log và Quy trình ứng phó sự cố."
+  }
+}

@@ -35,6 +35,9 @@ Bộ tài liệu ôn tập các công cụ và quy trình cốt lõi của SOC, 
 | [ITSM & SOC Workflow (Jira/Splunk)](./02-soc-operations/itsm-incident-workflow) | Kiến trúc ITSM/ITIL, Jira Service Management, tích hợp Splunk ES/ITSI trong SOC | ✅ Hoàn thành |
 | [Wazuh & Elastic Pipeline](./02-soc-operations/wazuh-siem-pipeline) | Cấu hình Filebeat/Winlogbeat, Logstash Grok, Wazuh Agent, Custom Rule/Decoder | ✅ Hoàn thành |
 | [Microsoft 365 for SOC](./02-soc-operations/microsoft365-soc) | Cấu hình log, baseline hành vi bình thường, phân tích cấu trúc log, KQL & SPL detection rules | ✅ Mới |
+| [AWS Cloud Security: Nền tảng](./02-soc-operations/cloud-security/01-aws-cloud-foundations) | Nền tảng Cloud cho SOC, Shared Responsibility Model, bề mặt tấn công 7 dịch vụ AWS cốt lõi | ✅ Mới |
+| [AWS Cloud Security: Tấn công & Kiến trúc](./02-soc-operations/cloud-security/02-cloud-security-architecture-attacks) | IAM logic, IMDSv1/v2 SSRF, 7 kỹ thuật Privilege Escalation, MITRE ATT&CK Cloud matrix | ✅ Mới |
+| [AWS Cloud Security: Giám sát & Ứng phó](./02-soc-operations/cloud-security/03-cloud-soc-detection-monitoring) | Multi-Account Log Vault, giải phẫu CloudTrail/VPC Flow, GuardDuty, 10 Use Cases (SPL/KQL/Athena) & Runbooks | ✅ Mới |
 
 ---
 

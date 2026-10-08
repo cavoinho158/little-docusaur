@@ -144,8 +144,11 @@ Luồng làm việc gồm 3 bước: bật subscription cho từng content type,
 
 ## 4. Baseline hoạt động bình thường
 
-> [!IMPORTANT]
-> Một detection rule hiệu quả không chỉ dựa trên "hành vi xấu trông như thế nào" mà còn phải biết "hành vi bình thường của tổ chức này trông như thế nào". Phần này mô tả những gì SOC cần thu thập và đo lường để thiết lập baseline — nền tảng để giảm false positive và phát hiện anomaly thực sự.
+:::important
+
+Một detection rule hiệu quả không chỉ dựa trên "hành vi xấu trông như thế nào" mà còn phải biết "hành vi bình thường của tổ chức này trông như thế nào". Phần này mô tả những gì SOC cần thu thập và đo lường để thiết lập baseline — nền tảng để giảm false positive và phát hiện anomaly thực sự.
+
+:::
 
 ### 4.1 Tại sao baseline quan trọng
 
