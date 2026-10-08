@@ -27,8 +27,11 @@ description: Phân tích chuyên sâu OWASP Top 10 phiên bản 2021 và 2025, t
 | 9 | Security Logging & Monitoring Failures | Security Logging & Monitoring Failures | ↔ Giữ nguyên |
 | 10 | SSRF | Cryptographic Failures | ↓ Giảm từ #2 |
 
-> [!NOTE]
-> OWASP 2025 chưa được phát hành chính thức tại thời điểm viết tài liệu này — thứ tự trên dựa trên bản draft và dự đoán từ cộng đồng bảo mật dựa trên xu hướng thực tế. Phiên bản chính thức có thể thay đổi.
+:::note
+
+OWASP 2025 chưa được phát hành chính thức tại thời điểm viết tài liệu này — thứ tự trên dựa trên bản draft và dự đoán từ cộng đồng bảo mật dựa trên xu hướng thực tế. Phiên bản chính thức có thể thay đổi.
+
+:::
 
 ---
 
