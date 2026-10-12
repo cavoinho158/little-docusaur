@@ -1,41 +1,39 @@
 ---
 id: cloud-soc-detection-monitoring
-title: AWS Cloud SOC — Detection Engineering, Log Analysis & Incident Response
+title: AWS Cloud SOC — Giám sát, Phát hiện & Ứng phó Sự cố
 sidebar_label: 3. Giám sát & Ứng phó Sự cố
 sidebar_position: 3
-description: Cẩm nang toàn diện về giám sát an ninh AWS — Kiến trúc Multi-Account Log Vault, giải phẫu CloudTrail & VPC Flow Logs, Threat Detection với GuardDuty, 10 Use Cases với bộ câu lệnh SPL/KQL/Athena và Runbook ứng phó sự cố thực chiến.
+description: Cẩm nang giám sát an ninh AWS — Kiến trúc log tập trung, phân tích cấu trúc CloudTrail & VPC Flow Logs, phát hiện đe dọa với GuardDuty, 10 use case kèm truy vấn SPL/KQL/Athena và runbook xử lý sự cố.
 ---
 
-# AWS Cloud SOC — Detection Engineering, Log Analysis & Incident Response
+# AWS Cloud SOC: Giám sát, Phát hiện & Ứng phó Sự cố
 
-> Hướng dẫn toàn diện và thực chiến dành cho SOC Analyst và Detection Engineer trong việc xây dựng hệ thống giám sát an ninh, phát hiện mối đe dọa và ứng phó sự cố (Incident Response) trên môi trường Amazon Web Services (AWS).
+> Tài liệu hướng dẫn xây dựng hệ thống giám sát an ninh, phát hiện mối đe dọa và quy trình ứng phó sự cố (incident response) trên môi trường AWS dành cho SOC analyst và detection engineer.
 
 ---
 
-## 1. Kiến trúc Giám sát An ninh Cloud Tổng thể (Cloud SOC Architecture)
+## 1. Kiến trúc lưu trữ và giám sát log tập trung
 
-Trong các tổ chức quy mô doanh nghiệp, hạ tầng AWS thường bao gồm hàng chục hoặc hàng trăm tài khoản (AWS Accounts) độc lập thuộc cùng một **AWS Organization**. Mô hình lưu trữ log phân tán tại từng tài khoản đơn lẻ là một "tử huyệt" an ninh, vì nếu kẻ tấn công chiếm được quyền quản trị tại tài khoản đó, chúng có thể xóa sạch dấu vết.
+Trong môi trường doanh nghiệp có nhiều tài khoản AWS con thuộc cùng một organization, việc để log phân tán tại từng tài khoản tiềm ẩn rủi ro lớn: nếu kẻ tấn công chiếm được quyền quản trị của một tài khoản, chúng có thể xóa sạch log để xóa dấu vết.
 
-Chuẩn mực kiến trúc doanh nghiệp đòi hỏi phải thiết lập một **Dedicated Centralized Log Archive Account** (Tài khoản lưu trữ nhật ký tập trung độc lập):
+Mô hình chuẩn là thiết lập một **Central Log Archive Account** (tài khoản lưu trữ log tập trung độc lập):
 
 ```
 ┌───────────────────────────┐    ┌───────────────────────────┐
-│     MEMBER ACCOUNT 1      │    │     MEMBER ACCOUNT 2      │
-│  (Workloads / Production) │    │      (Dev / Staging)      │
-│   ┌───────────────────┐   │    │   ┌───────────────────┐   │
-│   │ OrganizationTrail │   │    │   │ OrganizationTrail │   │
-│   │   VPC Flow Logs   │   │    │   │   VPC Flow Logs   │   │
-│   └─────────┬─────────┘   │    │   └─────────┬─────────┘   │
-└─────────────┼─────────────┘    └─────────────┼─────────────┘
-              │ (Cross-Account Push)           │
+│     Member Account 1      │    │     Member Account 2      │
+│     (Production)          │    │     (Dev / Staging)       │
+│  - Organization trail     │    │  - Organization trail     │
+│  - VPC Flow Logs          │    │  - VPC Flow Logs          │
+└─────────────┬─────────────┘    └─────────────┼─────────────┘
+              │ (Đẩy tự động qua cross-account)│
               ▼                                ▼
 ┌────────────────────────────────────────────────────────────┐
-│          CENTRAL LOG ARCHIVE ACCOUNT (Bất khả xâm phạm)    │
+│                Central Log Archive Account                 │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │ S3 Central Log Bucket                                │  │
-│  │  - Khóa bằng S3 Object Lock (WORM: Write Once)       │  │
-│  │  - Mã hóa bằng KMS CMK độc lập                       │  │
-│  │  - SCP cấm mọi hành động DeleteObject / DeleteBucket │  │
+│  │ S3 Log Bucket:                                       │  │
+│  │  - Bật S3 Object Lock (chế độ WORM)                  │  │
+│  │  - Mã hóa bằng KMS CMK riêng                         │  │
+│  │  - SCP cấm mọi hành động DeleteObject/DeleteBucket   │  │
 │  └──────────────────────────┬───────────────────────────┘  │
 └─────────────────────────────┼──────────────────────────────┘
                               │
@@ -44,39 +42,39 @@ Chuẩn mực kiến trúc doanh nghiệp đòi hỏi phải thiết lập một
     ┌──────────────────────┐      ┌──────────────────────┐
     │ SIEM / Data Platform │      │    AWS Athena /      │
     │  (Splunk / Sentinel) │      │  CloudWatch Insights │
-    │    Realtime Alert    │      │  Deep Hunting & IR   │
+    │   Cảnh báo realtime  │      │  Truy vấn điều tra   │
     └──────────────────────┘      └──────────────────────┘
 ```
 
-### Các nguyên tắc cốt tử bảo vệ Log Vault:
-1. **Kiến trúc Write-Once-Read-Many (WORM):** Bật tính năng **S3 Object Lock** ở chế độ `Compliance Mode`. Ngay cả tài khoản Root của tài khoản lưu trữ log cũng không thể sửa đổi hoặc xóa bất kỳ file log nào trước khi hết thời hạn retention quy định (ví dụ: 365 ngày).
-2. **KMS Customer Managed Key (CMK) độc lập:** Khóa mã hóa log được lưu tại Security Account với Key Policy nghiêm ngặt: chỉ cho phép các Member Accounts quyền `kms:GenerateDataKey*` để mã hóa và ghi log, cấm tuyệt đối quyền giải mã đối với các tài khoản nghiệp vụ thông thường.
-3. **Service Control Policy (SCP) bảo vệ Logging:** Gắn SCP từ tổ chức cấm mọi thao tác `cloudtrail:StopLogging`, `cloudtrail:DeleteTrail`, `cloudtrail:UpdateTrail`, và `s3:DeleteBucket*` trên toàn bộ các tài khoản con.
+Một số biện pháp bảo vệ nguồn log cần áp dụng:
+- **S3 Object Lock:** Bật ở chế độ Compliance Mode để bảo đảm dữ liệu log không thể bị sửa đổi hoặc xóa trước thời hạn lưu trữ (ví dụ 365 ngày), kể cả bởi tài khoản root.
+- **KMS Customer Managed Key (CMK) riêng:** Khóa mã hóa nằm ở tài khoản bảo mật riêng, chỉ cấp quyền mã hóa cho các tài khoản thành viên và hạn chế tối đa quyền giải mã.
+- **Service Control Policy (SCP):** Chặn các API xóa hoặc tắt log như `cloudtrail:StopLogging`, `cloudtrail:DeleteTrail` và `s3:DeleteBucket*` trên toàn bộ tài khoản con.
 
 ---
 
-## 2. Giải phẫu Chuyên sâu AWS CloudTrail Logs (CloudTrail Forensics)
+## 2. Phân tích cấu trúc CloudTrail logs
 
-CloudTrail là nguồn dữ liệu điều tra số (Digital Forensics) quan trọng nhất trên AWS, ghi nhận chi tiết **mọi lời gọi API từ Control Plane và Data Plane**.
+CloudTrail ghi nhận mọi API call từ control plane và data plane. Đây là nguồn dữ liệu điều tra cốt lõi nhất trên AWS.
 
-### 2.1 Phân biệt 3 loại sự kiện trong CloudTrail
+### 2.1 Ba loại sự kiện trong CloudTrail
 
-- **Management Events (Control Plane):** Ghi nhận các thao tác quản trị trên tài nguyên (ví dụ: tạo máy ảo `RunInstances`, chỉnh sửa Security Group `AuthorizeSecurityGroupIngress`, tạo IAM User `CreateUser`). Mặc định được ghi nhận miễn phí cho 90 ngày gần nhất trong *Event History*.
-- **Data Events (Data Plane):** Ghi nhận các thao tác trực tiếp trên dữ liệu nằm bên trong tài nguyên (ví dụ: đọc tệp trên S3 `GetObject`, thực thi hàm `lambda:InvokeFunction`). **Không được bật mặc định** do lượng log sinh ra khổng lồ và chi phí lưu trữ cao. SOC cần tư vấn cho doanh nghiệp bật có chọn lọc trên các S3 bucket chứa dữ liệu nhạy cảm nhất.
-- **CloudTrail Insights:** Sử dụng thuật toán Machine Learning để tự động phát hiện các đột biến bất thường về tần suất gọi API (ví dụ: số lượng API ghi tăng đột biến gấp 10 lần so với baseline ngày thường).
+- **Management events:** Ghi nhận các thao tác quản trị tài nguyên (như `RunInstances`, `CreateUser`, `AuthorizeSecurityGroupIngress`). Mặc định được ghi nhận miễn phí 90 ngày gần nhất trong mục Event history. Để lưu trữ dài hạn, cần tạo Trail ghi ra S3.
+- **Data events:** Ghi nhận các thao tác mức dữ liệu (như `s3:GetObject`, `lambda:InvokeFunction`). Loại event này không bật mặc định vì sinh ra lượng log rất lớn và tốn chi phí; thường chỉ bật có chọn lọc trên các S3 bucket chứa dữ liệu nhạy cảm.
+- **Insights events:** Sử dụng phân tích hành vi để phát hiện đột biến bất thường về tần suất gọi API (ví dụ số lượng lệnh ghi tăng vọt so với ngày thường).
 
 ---
 
-### 2.2 Giải phẫu chi tiết JSON Schema của một CloudTrail Event
+### 2.2 Các trường quan trọng trong JSON schema của CloudTrail
 
-Khi tiến hành điều tra sự cố (Incident Triage), SOC Analyst cần nhanh chóng bóc tách và liên kết các trường thông tin trọng yếu:
+Ví dụ một bản ghi sự kiện đổi bucket policy sang public:
 
 ```json
 {
   "eventVersion": "1.08",
   "userIdentity": {
     "type": "AssumedRole",
-    "principalId": "AROA123456789EXAMPLE:ec2-prod-session",
+    "principalId": "AROA123456789EXAMPLE:session-name",
     "arn": "arn:aws:sts::111122223333:assumed-role/EC2AppRole/i-0abcdef1234567890",
     "accountId": "111122223333",
     "accessKeyId": "ASIAVEXAMPLE12345678",
@@ -101,120 +99,77 @@ Khi tiến hành điều tra sự cố (Incident Triage), SOC Analyst cần nhan
   "sourceIPAddress": "198.51.100.45",
   "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.15.0",
   "requestParameters": {
-    "bucketName": "corporate-financial-records",
-    "bucketPolicy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"s3:GetObject\",\"Resource\":\"arn:aws:s3:::corporate-financial-records/*\"}]}"
+    "bucketName": "company-data-vault",
+    "bucketPolicy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"s3:GetObject\",\"Resource\":\"arn:aws:s3:::company-data-vault/*\"}]}"
   },
-  "responseElements": null,
-  "requestID": "4E1EXAMPLE987654",
-  "eventID": "8f123456-789a-bcde-f012-3456789abcde",
-  "readOnly": false,
-  "eventType": "AwsApiCall",
-  "managementEvent": true,
-  "recipientAccountId": "111122223333",
   "errorCode": null
 }
 ```
 
-### Các trường trọng tâm cần soi xét đầu tiên trong quá trình Triage:
+Các trường cần kiểm tra đầu tiên khi triage:
 
-1. **`userIdentity.type` & `arn`:** Xác định danh tính thực tế.
-   - `Root`: Báo động đỏ ngay lập tức.
-   - `IAMUser`: Người dùng thông thường hoặc service account dùng Access Key tĩnh (`AKIA...`).
-   - `AssumedRole`: Danh tính mượn quyền tạm thời (`ASIA...`). Cần kiểm tra `sessionIssuer` để biết ai là người cấp quyền gốc, và `principalId` để xác định instance ID hoặc session name.
-2. **`sourceIPAddress`:** Địa chỉ IP gửi yêu cầu.
-   - Nếu là địa chỉ IP bên ngoài (Internet IP) nhưng `userIdentity` lại là Role của EC2 (`i-0abcdef...`), đây là bằng chứng thép của việc **Credentials bị đánh cắp qua SSRF và đang bị dùng trái phép từ bên ngoài**!
-3. **`userAgent`:** Dấu hiệu công cụ của kẻ tấn công.
-   - Tên công cụ như `Kali`, `Pacu`, `ScoutSuite`, `CloudFox`, `botocore`, `python-requests` xuất hiện ở các sự kiện nhạy cảm là tín hiệu nhận diện tấn công cực mạnh.
-4. **`errorCode` & `errorMessage`:**
-   - Nếu xuất hiện chuỗi lỗi `AccessDenied` hoặc `Client.UnauthorizedOperation` liên tiếp từ cùng một IP/User, đó là dấu hiệu của hành vi **Reconnaissance & Privilege Enumeration** (kẻ tấn công đang chạy script dò quét xem key này làm được những gì).
+- **`userIdentity`:** Ai thực hiện hành động. Xem `type` (Root, IAMUser hay AssumedRole), `arn` và trường `sessionContext` để biết role gốc và trạng thái MFA.
+- **`sourceIPAddress`:** IP nguồn thực hiện lệnh. Cần đối chiếu xem IP này có phải IP văn phòng, IP nội bộ AWS hay IP lạ từ Internet.
+- **`userAgent`:** Công cụ gửi request (trình duyệt, AWS CLI, Boto3 SDK hay công cụ dò quét tự động).
+- **`errorCode`:** Nếu xuất hiện liên tiếp các lỗi `AccessDenied` từ cùng một user hoặc IP, đây là dấu hiệu của hành vi dò quét quyền.
+- **`requestParameters`:** Chi tiết tham số gửi lên (như nội dung policy mới, user nào được cấp key, bucket nào bị tác động).
 
 ---
 
-## 3. Các Nguồn Log Bổ trợ Quan trọng khác
+## 3. Các nguồn log bổ trợ: VPC Flow và DNS
 
-### 3.1 Amazon VPC Flow Logs — Dấu vết Tầng Mạng
+### 3.1 VPC Flow Logs
 
-VPC Flow Logs ghi lại metadata của toàn bộ các gói tin IP đi vào và đi ra khỏi các giao diện mạng ảo (ENI) trong VPC.
+VPC Flow Logs ghi lại metadata của các gói tin mạng đi qua giao diện mạng ảo (ENI). Định dạng bản ghi mặc định gồm các trường chính:
 
-**Schema Version 2 chuẩn:**
 ```
 <version> <account-id> <interface-id> <srcaddr> <dstaddr> <srcport> <dstport> <protocol> <packets> <bytes> <start> <end> <action> <log-status>
 ```
-*Ví dụ:*
-```
-2 111122223333 eni-0123456789abcdef0 203.0.113.10 10.0.1.50 49152 22 6 25 1250 1728345600 1728345660 ACCEPT OK
-```
 
-### Ứng dụng điều tra cho SOC:
-- **Phát hiện Dò quét Mạng Nội bộ (Internal Port Scanning):** Một IP nội bộ liên tục gửi gói tin tới nhiều IP khác nhau trong cùng subnet trên các cổng 445, 135, 3389, 22.
-- **Phát hiện C2 Beaconing:** Một máy chủ định kỳ gửi kết nối ra cùng một IP lạ bên ngoài Internet theo khoảng thời gian cố định (ví dụ mỗi 60 giây).
-- **Phát hiện Rò rỉ Dữ liệu Tầng Mạng (Network Data Exfiltration):** Trường `bytes` đột biến lên hàng Gigabyte hướng ra một IP ngoại lục địa trong một khung giờ đêm.
+Ứng dụng trong điều tra:
+- **Dò quét nội bộ:** Một máy chủ nội bộ liên tục gửi gói tin tới nhiều IP khác trong subnet trên các cổng 22, 445, 3389.
+- **C2 beaconing:** Máy chủ định kỳ gửi kết nối ra một IP cố định ngoài Internet theo chu kỳ đều đặn.
+- **Thất thoát dữ liệu qua mạng:** Trường `bytes` tăng đột biến ra một IP lạ ngoài nước trong khung giờ đêm.
 
----
+### 3.2 Route 53 Resolver query logs
 
-### 3.2 Route 53 Resolver Query Logs — Giám sát DNS
-
-Ghi nhận toàn bộ các truy vấn DNS xuất phát từ các máy ảo EC2 bên trong VPC:
-- **Phát hiện DNS Tunneling:** Các truy vấn tới domain có subdomain dài bất thường chứa chuỗi mã hóa Base64/Hex (ví dụ: `dGhpcy1pcy1zZWNyZXQtZGF0YQo=.attacker-c2.com`).
-- **Phát hiện DGA (Domain Generation Algorithms):** Máy tính bị nhiễm mã độc sinh ra hàng loạt truy vấn DNS vô nghĩa (`asdfg1234zx.biz`, `qwerty987po.info`) để tìm máy chủ điều khiển C2.
+Ghi nhận toàn bộ các truy vấn DNS gửi từ các máy chủ trong VPC. Nguồn này giúp phát hiện:
+- **DNS tunneling:** Tên miền phụ có độ dài bất thường chứa chuỗi mã hóa base64 nhằm truyền dữ liệu lén ra ngoài.
+- **DGA domain:** Các tên miền được sinh ngẫu nhiên từ mã độc để tìm máy chủ điều khiển C2.
 
 ---
 
-## 4. Các Dịch vụ Phát hiện Mối đe dọa Managed (Threat Detection)
+## 4. Dịch vụ phát hiện đe dọa với GuardDuty
 
-### 4.1 Amazon GuardDuty — Trung tâm Trí tuệ Nhân tạo Phát hiện Đe dọa
+### 4.1 Cơ chế hoạt động của Amazon GuardDuty
 
-Amazon GuardDuty là dịch vụ phát hiện mối đe dọa độc lập được quản lý hoàn toàn bởi AWS. Điểm ưu việt tuyệt đối của GuardDuty là **hoạt động hoàn toàn ngầm ở tầng hạ tầng của AWS**:
-- Không cần cài đặt bất kỳ agent nào lên máy chủ.
-- Tự động phân tích luồng dữ liệu khổng lồ từ: CloudTrail Management Events, CloudTrail S3 Data Events, VPC Flow Logs, DNS Query Logs, EKS Audit Logs, RDS Login Activity, và Lambda Execution Logs.
-- Ứng dụng các mô hình Machine Learning, phát hiện bất thường hành vi (Anomaly Detection), và tích hợp các nguồn Threat Intelligence hàng đầu thế giới (AWS Security, CrowdStrike, Proofpoint).
+Amazon GuardDuty là dịch vụ phát hiện mối đe dọa tự động chạy ngầm ở tầng hạ tầng AWS:
+- Không cần cài agent lên máy ảo.
+- Tự động phân tích CloudTrail management events, S3 data events, VPC Flow Logs, DNS query logs, EKS audit logs và RDS login activity.
+- Sử dụng machine learning kết hợp với threat intelligence từ AWS, CrowdStrike và Proofpoint.
 
-```
-   ┌────────────────────────────────────────────────────────┐
-   │                  CÁC NGUỒN DỮ LIỆU ĐẦU VÀO             │
-   │  CloudTrail  │  VPC Flow  │  DNS Logs  │  S3 / EKS / DB│
-   └──────────────────────────┬─────────────────────────────┘
-                              │ (Phân tích ngầm, không tốn compute)
-                              ▼
-   ┌────────────────────────────────────────────────────────┐
-   │                   AMAZON GUARDDUTY                     │
-   │   - Machine Learning Anomaly Detection                 │
-   │   - Threat Intelligence Matching (CrowdStrike / AWS)   │
-   │   - Phân tích chuỗi hành vi người dùng                 │
-   └──────────────────────────┬─────────────────────────────┘
-                              │
-                              ▼ (Findings định dạng JSON)
-   ┌────────────────────────────────────────────────────────┐
-   │             AMAZON EVENTBRIDGE / SECURITY HUB          │
-   │     - Gửi Alert về SIEM (Splunk, Microsoft Sentinel)   │
-   │     - Kích hoạt Lambda tự động ứng phó (SOAR)          │
-   └────────────────────────────────────────────────────────┘
-```
+Các nhóm finding quan trọng cần chú ý:
 
-### Danh mục Findings cốt lõi mà SOC Tier 1/2 bắt buộc phải nắm:
-
-| Tên GuardDuty Finding | Mức độ nghiêm trọng | Ý nghĩa hành vi tấn công |
+| Finding | Mức độ | Ý nghĩa |
 |---|---|---|
-| `UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS` | **CRITICAL** (8.0–8.9) | Temporary credentials của EC2 Instance Profile bị kẻ tấn công trích xuất (thường qua SSRF) và **đang được sử dụng từ một địa chỉ IP nằm ngoài hạ tầng AWS**. |
-| `Stealth:IAMUser/CloudTrailLoggingDisabled` | **HIGH** (7.0–8.9) | Một người dùng vừa thực hiện tắt hoặc xóa đường dẫn ghi log CloudTrail (`StopLogging`, `DeleteTrail`) nhằm che giấu hành vi. |
-| `CryptoCurrency:EC2/BitcoinTool.B!DNS` | **HIGH** (7.0–8.9) | Máy chủ EC2 vừa thực hiện truy vấn DNS tới một Mining Pool chuyên đào tiền mã hóa Bitcoin/Monero. |
-| `Trojan:EC2/DNSDataExfiltration` | **HIGH** (7.0–8.9) | Máy chủ EC2 đang thực hiện kỹ thuật truyền dữ liệu nhạy cảm ra ngoài thông qua giao thức DNS (DNS Tunneling). |
-| `Policy:S3/BucketPublicAccessGranted` | **HIGH** (7.0–8.9) | Cấu hình S3 Block Public Access của bucket bị gỡ bỏ hoặc Bucket Policy bị sửa đổi sang trạng thái cho phép cả thế giới truy cập. |
-| `PenTest:IAMUser/KaliLinux` | **MEDIUM** (4.0–6.9) | Một API call được thực hiện từ máy tính chạy hệ điều hành Kali Linux (nhận diện qua User-Agent signature). |
-| `Discovery:IAMUser/AnomalousBehavior` | **LOW / MEDIUM** | Người dùng thực hiện các lệnh liệt kê danh sách tài nguyên (`List*`, `Describe*`) với tần suất và hành vi hoàn toàn khác biệt so với lịch sử thường ngày. |
+| `UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS` | High | Token tạm thời của EC2 instance profile bị lấy cắp và đang được sử dụng từ một IP nằm ngoài dải IP của AWS. |
+| `Stealth:IAMUser/CloudTrailLoggingDisabled` | High | Có hành động tắt hoặc xóa trail trong CloudTrail (`StopLogging`, `DeleteTrail`). |
+| `CryptoCurrency:EC2/BitcoinTool.B!DNS` | High | Máy ảo EC2 gửi truy vấn DNS tới mining pool đào tiền mã hóa. |
+| `Trojan:EC2/DNSDataExfiltration` | High | Máy ảo EC2 có dấu hiệu truyền dữ liệu ra ngoài qua DNS tunneling. |
+| `Policy:S3/BucketPublicAccessGranted` | High | S3 bucket bị chuyển sang trạng thái cho phép truy cập công khai. |
+| `PenTest:IAMUser/KaliLinux` | Medium | Lệnh API được gửi từ máy tính chạy hệ điều hành Kali Linux. |
 
 ---
 
-## 5. Bộ 10 Use Case Detection Engineering Thực chiến
+## 5. Use case và truy vấn detection mẫu
 
-Dưới đây là bộ luật phát hiện cốt lõi dành cho Detection Engineer và SOC Analyst. Các truy vấn được cung cấp đồng thời bằng **SPL (Splunk)**, **KQL (Microsoft Sentinel)**, **SQL (Amazon Athena)** và **CloudWatch Logs Insights**.
+Dưới đây là 10 use case phổ biến kèm câu lệnh mẫu trên các nền tảng SIEM và công cụ truy vấn log.
 
 ---
 
-### Use Case 1: Phát hiện Sử dụng Tài khoản Root (Root Account Usage)
-- **Mô tả:** Tài khoản Root chỉ dùng khi thiết lập ban đầu. Bất kỳ hành vi đăng nhập Console hoặc gọi API nào từ Root đều là chỉ dấu bất thường hoặc vi phạm chính sách nghiêm trọng.
+### Use Case 1: Sử dụng tài khoản Root
+- **Mục tiêu:** Cảnh báo khi có bất kỳ hành vi đăng nhập hoặc gọi API nào bằng tài khoản root.
 - **MITRE ATT&CK:** `T1078.004` (Valid Accounts: Cloud Accounts).
-- **Mức độ ưu tiên:** **CRITICAL**.
 
 #### Splunk (SPL):
 ```spl
@@ -245,15 +200,14 @@ LIMIT 100;
 
 ---
 
-### Use Case 2: Tắt hoặc Phá hoại Cơ chế Ghi Log (Defense Evasion)
-- **Mô tả:** Kẻ tấn công tìm cách vô hiệu hóa CloudTrail hoặc xóa bộ dò quét GuardDuty để tránh bị phát hiện.
+### Use Case 2: Tắt hoặc xóa nhật ký CloudTrail
+- **Mục tiêu:** Phát hiện hành vi vô hiệu hóa việc ghi log để che giấu dấu vết.
 - **MITRE ATT&CK:** `T1562.008` (Impair Defenses: Disable Cloud Logs).
-- **Mức độ ưu tiên:** **HIGH**.
 
 #### Splunk (SPL):
 ```spl
 index=aws sourcetype="aws:cloudtrail" 
-eventName IN ("StopLogging", "DeleteTrail", "UpdateTrail", "DeleteDetector", "DisassociateFromMasterAccount")
+eventName IN ("StopLogging", "DeleteTrail", "UpdateTrail", "DeleteDetector")
 | table _time, userIdentity.arn, eventSource, eventName, sourceIPAddress, awsRegion, errorCode
 ```
 
@@ -267,10 +221,9 @@ fields @timestamp, eventName, userIdentity.arn, sourceIPAddress, awsRegion
 
 ---
 
-### Use Case 3: Đăng nhập Console Thành công nhưng Không bật MFA
-- **Mô tả:** Đăng nhập thành công vào giao diện web AWS Management Console mà không thông qua xác thực đa yếu tố.
+### Use Case 3: Đăng nhập Console không bật MFA
+- **Mục tiêu:** Phát hiện các phiên đăng nhập web console thành công mà không qua bước xác thực đa yếu tố.
 - **MITRE ATT&CK:** `T1078.004` (Valid Accounts: Cloud Accounts).
-- **Mức độ ưu tiên:** **HIGH**.
 
 #### Splunk (SPL):
 ```spl
@@ -292,10 +245,9 @@ AWSCloudTrail
 
 ---
 
-### Use Case 4: Kỹ thuật Leo thang Đặc quyền & Duy trì Truy cập (IAM Persistence & PrivEsc)
-- **Mô tả:** Tạo Access Key mới cho user khác, gán policy Administrator, hoặc tạo phiên bản policy mới có quyền `*`.
-- **MITRE ATT&CK:** `T1098.001` (Account Manipulation: Additional Cloud Credentials), `T1548` (Abuse Elevation Control Mechanism).
-- **Mức độ ưu tiên:** **HIGH**.
+### Use Case 4: Tạo credential mới hoặc gán quyền admin
+- **Mục tiêu:** Phát hiện hành vi duy trì quyền truy cập hoặc tự nâng quyền sau khi xâm nhập.
+- **MITRE ATT&CK:** `T1098.001` (Account Manipulation: Additional Cloud Credentials), `T1548`.
 
 #### Splunk (SPL):
 ```spl
@@ -310,10 +262,9 @@ errorCode=null
 
 ---
 
-### Use Case 5: S3 Bucket bị Gỡ bỏ Block Public Access hoặc Mở Public Policy
-- **Mô tả:** Thay đổi cấu hình bảo vệ S3 khiến dữ liệu có thể bị rò rỉ ra toàn cầu.
-- **MITRE ATT&CK:** `T1537` (Transfer Data to Cloud Account), `T1530` (Data from Cloud Storage Object).
-- **Mức độ ưu tiên:** **CRITICAL**.
+### Use Case 5: S3 bucket bị gỡ Block Public Access hoặc mở public policy
+- **Mục tiêu:** Cảnh báo khi cấu hình bảo vệ S3 bị thay đổi làm dữ liệu có nguy cơ lộ ra ngoài.
+- **MITRE ATT&CK:** `T1530` (Data from Cloud Storage Object), `T1537`.
 
 #### Splunk (SPL):
 ```spl
@@ -325,10 +276,9 @@ errorCode=null
 
 ---
 
-### Use Case 6: Token Replay / Instance Credential Exfiltration Ngoài Dải IP AWS
-- **Mô tả:** Temporary credential gắn với một máy ảo EC2 (`i-xxxx`) bị gọi từ một địa chỉ IP công cộng không thuộc dải IP hạ tầng của AWS.
+### Use Case 6: Credential của EC2 instance profile bị dùng ngoài dải IP AWS
+- **Mục tiêu:** Phát hiện trường hợp token tạm thời của máy ảo bị đánh cắp (qua SSRF) và mang ra ngoài Internet sử dụng.
 - **MITRE ATT&CK:** `T1552.005` (Unsecured Credentials: Cloud Instance Metadata API).
-- **Mức độ ưu tiên:** **CRITICAL**.
 
 #### Splunk (SPL):
 ```spl
@@ -342,10 +292,9 @@ userIdentity.arn="*assumed-role/*i-*"
 
 ---
 
-### Use Case 7: Do thám Quyền hạn (Access Denied Enumeration Spikes)
-- **Mô tả:** Một identity gặp phải chuỗi lỗi `AccessDenied` liên tục trong thời gian ngắn (chỉ dấu công cụ quét tự động của attacker).
+### Use Case 7: Dò quét quyền hạn (chuỗi AccessDenied liên tiếp)
+- **Mục tiêu:** Phát hiện khi một identity gọi hàng loạt API và liên tục nhận lỗi từ chối quyền.
 - **MITRE ATT&CK:** `T1526` (Cloud Service Discovery).
-- **Mức độ ưu tiên:** **MEDIUM**.
 
 #### Splunk (SPL):
 ```spl
@@ -358,10 +307,9 @@ index=aws sourcetype="aws:cloudtrail" errorCode IN ("AccessDenied", "Client.Unau
 
 ---
 
-### Use Case 8: Mở Cổng Quản trị Nguy hiểm (22, 3389) Ra Toàn cầu (`0.0.0.0/0`)
-- **Mô tả:** Luật Security Group mới được thêm vào cho phép truy cập từ mọi nơi trên Internet vào cổng SSH hoặc RDP.
-- **MITRE ATT&CK:** `T1078` (Valid Accounts), `T1133` (External Remote Services).
-- **Mức độ ưu tiên:** **HIGH**.
+### Use Case 8: Mở cổng quản trị (22, 3389) ra toàn Internet (0.0.0.0/0)
+- **Mục tiêu:** Cảnh báo khi có rule security group mới cho phép kết nối từ mọi IP vào cổng quản lý.
+- **MITRE ATT&CK:** `T1133` (External Remote Services).
 
 #### Microsoft Sentinel (KQL):
 ```kql
@@ -380,10 +328,9 @@ AWSCloudTrail
 
 ---
 
-### Use Case 9: Khởi tạo Máy chủ Compute Đột biến tại Region Lạ (Cryptomining Spike)
-- **Mô tả:** Khởi tạo các dòng máy ảo cấu hình lớn tại Region không thuộc danh sách phê duyệt hoạt động của công ty.
+### Use Case 9: Khởi tạo máy ảo cấu hình cao ở region lạ
+- **Mục tiêu:** Phát hiện hành vi đào coin bằng cách bật máy chủ tại các region không nằm trong danh sách thường dùng.
 - **MITRE ATT&CK:** `T1496` (Resource Hijacking).
-- **Mức độ ưu tiên:** **HIGH**.
 
 #### Splunk (SPL):
 ```spl
@@ -396,10 +343,9 @@ index=aws sourcetype="aws:cloudtrail" eventName="RunInstances" errorCode=null
 
 ---
 
-### Use Case 10: Chia sẻ Snapshot EBS / RDS Ra Ngoài Tài khoản Doanh nghiệp
-- **Mô tả:** Sửa đổi quyền của bản sao lưu ổ cứng hoặc database để chia sẻ sang tài khoản AWS bên ngoài.
+### Use Case 10: Chia sẻ snapshot EBS hoặc RDS ra tài khoản ngoài
+- **Mục tiêu:** Phát hiện hành vi chia sẻ bản sao lưu ổ đĩa hoặc cơ sở dữ liệu sang tài khoản bên ngoài.
 - **MITRE ATT&CK:** `T1537` (Transfer Data to Cloud Account).
-- **Mức độ ưu tiên:** **CRITICAL**.
 
 #### Amazon Athena (SQL):
 ```sql
@@ -412,112 +358,90 @@ ORDER BY eventtime DESC;
 
 ---
 
-## 6. Quy trình Điều tra & Ứng phó Sự cố Thực chiến (IR Runbooks)
+## 6. Quy trình điều tra và ứng phó sự cố (IR runbooks)
 
-Khi xảy ra sự cố trên môi trường Cloud, thời gian phản ứng tính bằng phút. Dưới đây là hai quy trình tác chiến chuẩn (Standard Operating Procedures - SOP) dành cho SOC Analyst:
+### 6.1 Runbook: Xử lý sự cố rò rỉ AWS access key
 
-### 6.1 Runbook: Xử lý Sự cố Rò rỉ AWS Access Key (Compromised IAM Credentials)
-
-```
-SỰ CỐ: RÒ RỈ AWS ACCESS KEY (AKIA... / ASIA...)
- ┌──────────────────────────────────────────────────────────────┐
- │ BƯỚC 1: XÁC MINH & ĐỊNH DANH (IDENTIFICATION)                 │
- │ - Xác định AccessKeyId, User sở hữu, thời điểm dùng lần cuối:│
- │   aws iam get-access-key-last-used --access-key-id <KEY_ID>  │
- └──────────────────────────────┬───────────────────────────────┘
-                                │
-                                ▼
- ┌──────────────────────────────────────────────────────────────┐
- │ BƯỚC 2: CÔ LẬP KHẨN CẤP (CONTAINMENT)                        │
- │ 1. Vô hiệu hóa Key ngay lập tức:                             │
- │    aws iam update-access-key --access-key-id <KEY_ID>        │
- │        --status Inactive --user-name <USER_NAME>             │
- │ 2. Thu hồi toàn bộ Temporary STS Sessions (Revoke Sessions): │
- │    Gắn Inline Policy ép buộc từ chối token cấp trước giờ T   │
- └──────────────────────────────┬───────────────────────────────┘
-                                │
-                                ▼
- ┌──────────────────────────────────────────────────────────────┐
- │ BƯỚC 3: ĐIỀU TRA PHẠM VI ẢNH HƯỞNG (SCOPING & HUNTING)        │
- │ - Truy vấn CloudTrail lọc theo accessKeyId trong 7-30 ngày:  │
- │   Tìm mọi hành động Create*, Put*, Attach*, RunInstances     │
- └──────────────────────────────┬───────────────────────────────┘
-                                │
-                                ▼
- ┌──────────────────────────────────────────────────────────────┐
- │ BƯỚC 4: TIÊU DIỆT TẬN GỐC & KHÔI PHỤC (ERADICATION)          │
- │ - Xóa bỏ Backdoor (User/Key mới tạo, backdoor policy)        │
- │ - Terminate toàn bộ EC2 instance do kẻ tấn công tạo ra       │
- │ - Xóa vĩnh viễn Access Key bị lộ                             │
- └──────────────────────────────────────────────────────────────┘
-```
-
-#### Mẫu chính sách Revoke Session STS khẩn cấp:
-Nếu thông tin xác thực bị lộ là Temporary Credential của một IAM Role, việc xóa key là bất khả thi vì STS key có thời hạn. Cách duy nhất để vô hiệu hóa ngay lập tức là gán một chính sách **Explicit Deny** dựa trên mốc thời gian phát hiện sự cố:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "RevokeOlderSessions",
-      "Effect": "Deny",
-      "Action": "*",
-      "Resource": "*",
-      "Condition": {
-        "DateLessThan": {
-          "aws:TokenIssueTime": "2026-10-08T08:00:00Z"
-        }
-      }
-    }
-  ]
-}
-```
+1. **Xác minh và xác định phạm vi:**
+   - Kiểm tra user sở hữu key và thời điểm sử dụng gần nhất:
+     ```bash
+     aws iam get-access-key-last-used --access-key-id <ACCESS_KEY_ID>
+     ```
+2. **Cô lập nhanh (containment):**
+   - Đặt trạng thái key sang `Inactive` ngay lập tức:
+     ```bash
+     aws iam update-access-key --access-key-id <ACCESS_KEY_ID> \
+         --status Inactive --user-name <USER_NAME>
+     ```
+   - Nếu nghi ngờ liên quan tới role hoặc session token tạm thời, gán một inline policy để từ chối các session được cấp trước thời điểm phát hiện:
+     ```json
+     {
+       "Version": "2012-10-17",
+       "Statement": [
+         {
+           "Sid": "RevokeOlderSessions",
+           "Effect": "Deny",
+           "Action": "*",
+           "Resource": "*",
+           "Condition": {
+             "DateLessThan": {
+               "aws:TokenIssueTime": "2026-10-08T08:00:00Z"
+             }
+           }
+         }
+       ]
+     }
+     ```
+3. **Điều tra phạm vi ảnh hưởng (scoping):**
+   - Truy vấn CloudTrail lọc theo `accessKeyId` trong vòng 7 đến 30 ngày để liệt kê toàn bộ các hành động đã thực hiện.
+   - Tìm kiếm các event tạo user mới, tạo key mới, đổi policy hoặc tạo instance EC2 lạ.
+4. **Xử lý triệt để và khôi phục:**
+   - Xóa bỏ các tài nguyên backdoor do kẻ tấn công tạo ra.
+   - Xóa vĩnh viễn access key bị lộ và cấp key mới nếu cần thiết.
 
 ---
 
-### 6.2 Runbook: Xử lý Máy chủ EC2 bị Chiếm quyền & Khai thác SSRF
+### 6.2 Runbook: Xử lý máy chủ EC2 bị xâm nhập
 
-1. **Cô lập Mạng Tức thời (Network Isolation via Quarantine Security Group):**
-   - Thay thế toàn bộ Security Group hiện tại của máy chủ bằng một **Quarantine SG**.
-   - Cấu hình Quarantine SG: Xóa sạch toàn bộ Inbound và Outbound rules (cấm hoàn toàn kết nối mạng ra Internet và mạng nội bộ, chặn C2 và chặn lateral movement).
-2. **Thu thập Bằng chứng Số (Forensic Acquisition):**
-   - **Tạo Snapshot ổ đĩa EBS ngay lập tức:**
+1. **Cô lập máy chủ:**
+   - Gán máy chủ vào một quarantine security group đã xóa toàn bộ inbound và outbound rules để cắt đứt kết nối C2 và ngăn lây lan mạng nội bộ.
+2. **Thu thập bằng chứng số:**
+   - Tạo snapshot ổ đĩa EBS của máy chủ để lưu giữ bằng chứng:
      ```bash
      aws ec2 create-snapshot --volume-id vol-0123456789abcdef0 \
          --description "Forensic-Snapshot-Incident-20261008"
      ```
-   - Chuyển snapshot sang Forensic Account chuyên dụng, mount vào máy phân tích sạch để kiểm tra malware, web shell, và artifact.
-3. **Thu hồi Quyền Hạn của Instance Profile:**
-   - Tháo gỡ IAM Role đang gắn trên máy ảo để ngăn chặn tiếp tục sinh ra credentials mới:
+   - Chuyển snapshot sang tài khoản forensics riêng để gắn vào máy phân tích sạch và kiểm tra malware, webshell.
+3. **Gỡ bỏ instance profile:**
+   - Tách IAM role ra khỏi instance để tránh việc tiếp tục sinh credential tạm thời:
      ```bash
      aws ec2 disassociate-iam-instance-profile \
          --association-id iip-assoc-0123456789abcdef0
      ```
-4. **Bắt buộc Kích hoạt IMDSv2 cho Toàn bộ Hạ tầng:**
-   - Ngăn chặn triệt để nguy cơ tái diễn SSRF trên các máy chủ còn lại.
+4. **Khắc phục nguyên nhân gốc rễ:**
+   - Kiểm tra cấu hình IMDS, bắt buộc chuyển sang IMDSv2 với hop limit = 1 nếu phát hiện dấu hiệu khai thác SSRF.
 
 ---
 
-## 7. Tự động hóa Phản ứng với Amazon EventBridge & AWS Lambda (SOAR)
+## 7. Tự động hóa ứng phó với EventBridge và Lambda
 
-Để giảm thiểu thời gian phản ứng (Mean Time to Respond - MTTR), SOC hiện đại kết hợp **EventBridge Rules** để tự động kích hoạt **AWS Lambda** thực thi hành động ngăn chặn ngay khi GuardDuty sinh ra cảnh báo nghiêm trọng:
+Để rút ngắn thời gian xử lý sự cố, tổ chức có thể kết hợp EventBridge và AWS Lambda để tự động thực thi các hành động ngăn chặn ban đầu:
 
 ```
 [ GuardDuty phát hiện: InstanceCredentialExfiltration ]
                          │
                          ▼
 ┌────────────────────────────────────────────────────────┐
-│ Amazon EventBridge Rule: Match Finding Type & Severity │
+│ Amazon EventBridge: Lọc finding có mức High/Critical   │
 └────────────────────────┬───────────────────────────────┘
                          ▼
 ┌────────────────────────────────────────────────────────┐
-│ AWS Lambda Function (Auto-Remediation):                │
-│  1. Đọc ARN của IAM Role bị rò rỉ token               │
-│  2. Tự động gán chính sách Deny Revoke Token Sessions   │
-│  3. Gửi cảnh báo khẩn cấp vào kênh SOC Discord/Slack   │
-│  4. Tạo ticket sự cố tự động trên Jira Service Mgmt    │
+│ AWS Lambda (tự động ứng phó):                          │
+│  - Trích xuất IAM role bị lộ                           │
+│  - Gán policy Deny thu hồi session cũ                  │
+│  - Gửi thông báo khẩn cấp vào kênh chat SOC            │
+│  - Tự động tạo ticket sự cố trên Jira Service Mgmt     │
 └────────────────────────────────────────────────────────┘
 ```
 
-Mô hình này giúp tổ chức chặn đứng kẻ tấn công chỉ trong vòng **vài giây** sau khi hành vi xâm nhập diễn ra, loại bỏ hoàn toàn độ trễ của con người trong các ca trực đêm.
+Mô hình này giúp ngăn chặn hành vi khai thác ngay khi hệ thống phát hiện đe dọa, giảm thiểu thiệt hại trước khi ca trực tiếp nhận và xử lý thủ công.

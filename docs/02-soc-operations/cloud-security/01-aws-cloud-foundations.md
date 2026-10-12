@@ -1,156 +1,112 @@
 ---
 id: aws-cloud-foundations
-title: AWS Cloud Foundations — Nền tảng Điện toán Đám mây cho SOC
+title: AWS Cloud Foundations — Nền tảng cho SOC
 sidebar_label: 1. Nền tảng Cloud (AWS)
 sidebar_position: 1
-description: Kiến trúc điện toán đám mây AWS dưới góc nhìn SOC Analyst — Shared Responsibility Model chuyên sâu, bề mặt tấn công các dịch vụ cốt lõi, chiến lược giám sát địa lý (Geo-baselining) và dấu vết API.
+description: Kiến trúc AWS dưới góc nhìn SOC — Shared Responsibility Model, bề mặt tấn công các dịch vụ cốt lõi, rủi ro từ region lạ và dấu vết API trong log.
 ---
 
-# AWS Cloud Foundations — Nền tảng Điện toán Đám mây cho SOC
+# AWS Cloud Foundations: Nền tảng cho SOC
 
-> Tài liệu nghiên cứu chuyên sâu về nền tảng điện toán đám mây Amazon Web Services (AWS) dành riêng cho SOC Analyst và Detection Engineer. Bài viết tái định hình các khái niệm Cloud cơ bản dưới góc nhìn giám sát an ninh, phân tích bề mặt tấn công (attack surface) và xây dựng nền móng vững chắc cho công tác điều tra số (Cloud Forensics).
+> Tài liệu tổng hợp kiến thức nền tảng về Amazon Web Services (AWS) dành cho SOC analyst, tập trung vào cách cloud vận hành, bề mặt tấn công của các dịch vụ cốt lõi và các dấu vết API phục vụ điều tra.
 
 ---
 
-## 1. Chuyển dịch Tư duy: On-Premises sang Cloud trong Mắt SOC Analyst
+## 1. Tư duy cloud cho SOC: từ perimeter sang identity và API
 
-Trong môi trường truyền thống (On-Premises), tư duy an ninh thông tin xoay quanh khái niệm **"Lâu đài và Hào nước" (Castle-and-Moat)**: hệ thống được bao bọc bởi tường lửa biên (Perimeter Firewall), thiết bị IDS/IPS vật lý và phân vùng mạng VLAN. Một cuộc tấn công thường diễn ra qua các bước quét cổng mạng, khai thác dịch vụ lộ ra ngoài Internet, sau đó chiếm quyền shell máy chủ rồi di chuyển ngang (Lateral Movement) qua subnet nội bộ.
+Trong môi trường on-premises truyền thống, bảo mật thường xoay quanh mô hình phòng thủ theo chu vi (perimeter defense): tường lửa biên, IDS/IPS vật lý và phân vùng mạng nội bộ. Kẻ tấn công thường phải quét cổng, khai thác dịch vụ mạng, chiếm shell máy chủ rồi mới tìm cách di chuyển ngang qua subnet.
 
-Khi bước sang môi trường Cloud, toàn bộ mô hình này bị phá vỡ hoàn toàn bởi khái niệm **Software-Defined Infrastructure (Hạ tầng định nghĩa bằng phần mềm)**.
+Khi chuyển sang cloud, toàn bộ hạ tầng được định nghĩa bằng phần mềm (software-defined infrastructure). Tài nguyên máy chủ ảo, ổ đĩa hay cơ sở dữ liệu không cần cắm dây vật lý mà được cấp phát trực tiếp qua các lệnh gọi API tới control plane của AWS.
 
 ```
-MÔ HÌNH ON-PREMISES (Castle-and-Moat):
-[ Internet ] ──► [ Firewall Biên / IDS ] ──► [ DMZ ] ──► [ Core Network ] ──► [ Servers ]
-                   (Kiểm soát chủ yếu bằng IP / Port / Packet Inspection)
+Mô hình on-premises:
+[ Internet ] ──► [ Tường lửa biên / IDS ] ──► [ DMZ ] ──► [ Core Network ] ──► [ Máy chủ ]
+                   (Kiểm soát chủ yếu theo IP, port và traffic mạng)
 
-MÔ HÌNH CLOUD (Identity & API-Driven Plane):
+Mô hình cloud:
 [ User / Attacker / Service ]
             │
-            ▼ (HTTPS API Call: AWS CLI, SDK, Console)
+            ▼ (HTTPS API: AWS CLI, SDK, Console)
     ┌────────────────────────────────────────────────────────┐
-    │              AWS CONTROL PLANE (API Gateway)           │
-    │         Kiểm tra Authentication & Authorization        │
-    │               (IAM Policy, SCP, STS Token)             │
+    │                   AWS Control Plane                    │
+    │         Kiểm tra authentication và authorization       │
+    │               (IAM policy, SCP, STS token)             │
     └───────┬────────────────────────┬───────────────────────┘
             ▼                        ▼                       ▼
-       [ EC2 Virtual ]          [ S3 Buckets ]         [ Lambda Code ]
-    (Tạo/Xóa bằng API)       (Dữ liệu qua API)       (Gọi qua API)
+         [ EC2 ]                  [ S3 ]                 [ Lambda ]
+    (Tạo/xóa qua API)        (Dữ liệu qua API)       (Kích hoạt qua API)
 ```
 
-### Các đặc trưng căn bản mà SOC Analyst bắt buộc phải nắm:
+Một số thay đổi căn bản mà analyst cần lưu ý:
 
-1. **Mọi tài nguyên đều được quản trị qua API (Control Plane):** Một máy chủ ảo EC2, một ổ đĩa EBS, hay một cụm cơ sở dữ liệu RDS không cần kỹ sư đến cắm dây hay bật nút nguồn. Chúng được sinh ra chỉ bằng một dòng lệnh API call (ví dụ `ec2:RunInstances`). Do đó, một kẻ tấn công sở hữu **Access Key bị lộ** có thể tạo ra hàng trăm máy chủ đào coin hoặc xóa sạch toàn bộ cơ sở dữ liệu của doanh nghiệp mà **không cần bước chân vào mạng nội bộ hay gửi một gói tin shellcode nào**.
-2. **Hạ tầng ngắn hạn (Ephemeral Infrastructure):** Máy chủ trong Cloud có thể được khởi tạo, hoàn thành tác vụ tính toán và bị hủy chỉ trong vài phút (Auto-scaling, Serverless). Nếu SOC phụ thuộc vào việc "SSH vào máy trích xuất RAM/ổ đĩa" theo kiểu Digital Forensics truyền thống, dữ liệu bằng chứng sẽ bốc hơi ngay khi instance bị terminate. Điều tra Cloud bắt buộc phải dựa vào **log tập trung được thu thập theo thời gian thực**.
-3. **Mất đi ranh giới mạng vật lý:** Một S3 bucket lưu trữ dữ liệu tài chính không nằm sau một switch cố định nào; nó được cấp phát endpoint công cộng trên toàn cầu. Ranh giới duy nhất ngăn cách dữ liệu đó với thế giới là **chính sách phân quyền IAM và cấu hình Bucket Policy**.
+- **Mọi thay đổi hạ tầng đều là API call:** Một instance EC2 hay cơ sở dữ liệu RDS có thể được tạo ra chỉ bằng một API call (như `RunInstances` hay `CreateDBInstance`). Kẻ tấn công có access key bị lộ có thể tạo máy chủ đào coin hoặc xóa bucket dữ liệu mà không cần gửi bất kỳ gói tin exploit mạng nào.
+- **Tài nguyên ngắn hạn (ephemeral):** Máy ảo trong cloud có thể được sinh ra, xử lý tác vụ rồi bị hủy trong vòng vài chục phút qua auto-scaling. SOC không thể chỉ trông đợi vào việc SSH vào máy trích xuất RAM hay ổ cứng theo cách điều tra máy vật lý truyền thống, mà phải dựa vào luồng log được đẩy tập trung về SIEM theo thời gian thực.
+- **Ranh giới mạng bị xóa nhòa:** Một S3 bucket lưu dữ liệu khách hàng có public endpoint toàn cầu. Ranh giới duy nhất ngăn cách dữ liệu đó với bên ngoài là cấu hình phân quyền IAM và bucket policy, chứ không phải một firewall vật lý nào.
 
 ---
 
-## 2. Định nghĩa NIST và Hệ quả An ninh đối với SOC
+## 2. Đặc tính NIST dưới góc nhìn rủi ro SOC
 
-Theo Viện Tiêu chuẩn và Kỹ thuật Quốc gia Hoa Kỳ (NIST SP 800-145), Cloud Computing được định nghĩa thông qua 5 đặc tính cốt lõi. Mỗi đặc tính này đều kéo theo những thách thức an ninh và tín hiệu cảnh báo đặc trưng cho đội ngũ SOC:
+Theo NIST SP 800-145, điện toán đám mây có 5 đặc tính cốt lõi. Mỗi đặc tính đều mang lại sự tiện lợi trong vận hành nhưng cũng tạo ra các rủi ro cụ thể:
 
-| Đặc tính NIST | Bản chất vận hành | Hệ quả an ninh & Điểm nhìn SOC |
+| Đặc tính NIST | Ý nghĩa vận hành | Rủi ro và điểm cần giám sát |
 |---|---|---|
-| **On-demand Self-service** | Người dùng tự cấp phát tài nguyên qua giao diện/API mà không cần can thiệp con người. | **Nguy cơ Shadow IT & Cấu hình sai:** Bất kỳ lập trình viên nào có quyền IAM đều có thể vô tình mở một cổng dữ liệu ra Internet. SOC cần giám sát các sự kiện tạo tài nguyên mới (`Create*`, `Run*`). |
-| **Broad Network Access** | Truy cập tài nguyên qua mạng thông qua các giao thức tiêu chuẩn từ mọi loại thiết bị. | **Mất ranh giới địa lý:** Kẻ tấn công có thể tương tác với hệ thống từ bất kỳ đâu qua Internet. Yêu cầu SOC phải xây dựng **Geo-baseline** và giám sát kỹ các phiên đăng nhập từ IP bất thường hoặc VPN/Tor. |
-| **Resource Pooling** | Hạ tầng vật lý dùng chung (Multi-tenancy) được cấp phát logic cho nhiều khách hàng. | **Ảo hóa làm ranh giới:** Dù lỗ hổng Hypervisor Escape cực kỳ hiếm, SOC cần lưu ý nguy cơ lộ dữ liệu giữa các tenant qua cấu hình IAM Trust Policy sai hoặc chia sẻ Snapshot nhầm lẫn. |
-| **Rapid Elasticity** | Co giãn tài nguyên gần như vô hạn theo nhu cầu tải. | **Hiểm họa Denial of Wallet (DoW) & Cryptomining:** Kẻ tấn công chiếm được quyền sẽ lập tức kích hoạt tối đa hạn mức vCPU/GPU để đào tiền mã hóa, gây thiệt hại tài chính khổng lồ chỉ trong vài giờ. |
-| **Measured Service** | Hệ thống tự động đo đếm và tính phí theo tài nguyên thực tế tiêu thụ. | **Tín hiệu cảnh báo sớm từ Billing:** Sự gia tăng đột biến trong hóa đơn sử dụng tài nguyên (AWS Cost Anomaly Detection) thường là chỉ dấu đầu tiên của một cuộc xâm nhập mà log chưa kịp phát hiện. |
+| **On-demand self-service** | Người dùng tự tạo tài nguyên qua console hoặc API mà không cần phê duyệt thủ công. | Dễ phát sinh shadow IT và cấu hình sai. Người dùng có quyền có thể vô tình mở tài nguyên ra Internet. Cần giám sát các event tạo tài nguyên mới (`Create*`, `Run*`). |
+| **Broad network access** | Truy cập dịch vụ qua mạng từ nhiều vị trí và thiết bị khác nhau. | Kẻ tấn công có thể tương tác với hệ thống từ bất kỳ đâu qua Internet. Cần xây dựng baseline địa lý và cảnh báo khi có đăng nhập từ IP, quốc gia hoặc ASN bất thường. |
+| **Resource pooling** | Hạ tầng vật lý dùng chung cho nhiều khách hàng (multi-tenant). | Ranh giới giữa các tenant được phân tách bằng logic ảo hóa. Cần chú ý rủi ro rò rỉ dữ liệu qua trust policy quá rộng hoặc chia sẻ snapshot nhầm sang tài khoản ngoài. |
+| **Rapid elasticity** | Tài nguyên có thể co giãn tự động và nhanh chóng theo nhu cầu tải. | Rủi ro bị lạm dụng tài nguyên để đào coin (cryptomining) hoặc denial of wallet. Kẻ tấn công có thể tạo hàng loạt instance đắt tiền làm chi phí tăng vọt. |
+| **Measured service** | Đo lường và tính phí chính xác theo lượng tài nguyên thực tế sử dụng. | Đột biến chi phí bất thường (AWS Cost Anomaly) thường là một trong những chỉ báo sớm cho thấy tài khoản đang bị lạm dụng tài nguyên tính toán. |
 
 ---
 
-## 3. Phân định Mô hình Dịch vụ: IaaS, PaaS, SaaS
+## 3. Phân định mô hình dịch vụ: IaaS, PaaS và SaaS
 
-Việc xác định mô hình dịch vụ quyết định trực tiếp **phạm vi điều tra** và **nguồn dữ liệu log khả dụng** của SOC Analyst khi xảy ra sự cố.
+Mô hình dịch vụ quyết định phạm vi trách nhiệm kỹ thuật và các nguồn log mà SOC có thể tiếp cận khi điều tra sự cố:
 
-```
-┌──────────────────────────┐  ┌──────────────────────────┐  ┌──────────────────────────┐
-│        IaaS (EC2)        │  │        PaaS (RDS)        │  │       SaaS (M365)        │
-├──────────────────────────┤  ├──────────────────────────┤  ├──────────────────────────┤
-│ Khách: Dữ liệu           │  │ Khách: Dữ liệu           │  │ Khách: Dữ liệu           │
-│ Khách: Ứng dụng          │  │ Khách: Ứng dụng          │  │ Khách: Quyền & Danh tính │
-│ Khách: OS & Patching     │  │ CSP: OS & Runtime        │  │ CSP: Mọi thứ còn lại     │
-│ Khách: Mạng ảo (SG/VPC)  │  │ CSP: Patching phần cứng  │  │                          │
-│ CSP: Phần cứng & Hypervis│  │ CSP: Hạ tầng vật lý      │  │                          │
-└──────────────────────────┘  └──────────────────────────┘  └──────────────────────────┘
-```
-
-- **IaaS (Infrastructure as a Service — ví dụ: Amazon EC2, EBS):**
-  - *Phạm vi của SOC:* Rộng nhất. SOC phải giám sát cả tầng hạ tầng ảo (Security Group, IAM, CloudTrail) lẫn tầng hệ điều hành bên trong (Sysmon, Windows Event Logs, Linux `auditd`, SSH auth log, EDR agent).
-  - *Trách nhiệm bảo mật:* Bạn tự chịu trách nhiệm cài đặt bản vá hệ điều hành, chống malware, và cấu hình tường lửa cục bộ.
-- **PaaS (Platform as a Service — ví dụ: Amazon RDS, Elastic Beanstalk, DynamoDB):**
-  - *Phạm vi của SOC:* Thu hẹp lại ở tầng ứng dụng và cấu hình phân quyền. Bạn **không thể** cài đặt agent EDR lên máy chủ chạy ngầm của Amazon RDS, cũng không thể SSH vào để xem `syslog`.
-  - *Nguồn dữ liệu:* Phụ thuộc hoàn toàn vào CloudTrail (quản trị DB), RDS Database Engine Logs (General log, Slow query, Error log) được đẩy về CloudWatch.
-- **SaaS (Software as a Service — ví dụ: Microsoft 365, Salesforce):**
-  - *Phạm vi của SOC:* Giám sát hành vi danh tính và luồng dữ liệu (Sign-in logs, Audit logs, Data sharing). Toàn bộ hạ tầng ngầm do nhà cung cấp bảo vệ.
+| Mô hình | Trách nhiệm của AWS | Trách nhiệm của khách hàng | Nguồn log khả dụng cho SOC |
+|---|---|---|---|
+| **IaaS** (EC2, EBS, VPC) | Phần cứng vật lý, mạng nền tảng, hypervisor ảo hóa. | Hệ điều hành, bản vá lỗ hổng (patching), phần mềm, cấu hình firewall mạng (security group), dữ liệu. | CloudTrail, VPC Flow Logs, log hệ điều hành (Sysmon, Windows Event Logs, auditd, auth.log) và EDR agent. |
+| **PaaS** (RDS, DynamoDB, Lambda) | Phần cứng, OS máy chủ ngầm, runtime, cập nhật bản vá nền tảng. | Cấu hình dịch vụ, code ứng dụng, quản lý tài khoản database, phân quyền dữ liệu. | CloudTrail, log do dịch vụ xuất ra (RDS database engine log, CloudWatch Logs từ Lambda execution). Không thể cài EDR lên host ngầm. |
+| **SaaS** (Microsoft 365, Salesforce) | Toàn bộ hạ tầng, phần cứng, hệ điều hành và ứng dụng. | Cấu hình bảo mật tenant, quản lý tài khoản người dùng, phân quyền truy cập dữ liệu. | Sign-in logs, audit logs, unified audit log. Không quản lý bất kỳ phần cứng hay mạng ngầm nào. |
 
 ---
 
-## 4. Shared Responsibility Model (Mô hình Trách nhiệm Chung) Chuyên sâu
+## 4. Shared Responsibility Model chuyên sâu
 
-> [!WARNING]
-> Theo báo cáo Cloud Security của Gartner, hơn **95% các vụ rò rỉ dữ liệu trên môi trường Cloud xuất phát từ lỗi cấu hình và sai sót của khách hàng**, chứ không phải do nhà cung cấp đám mây bị tin tặc tấn công.
+Mô hình trách nhiệm chung phân định rõ ranh giới giữa hai bên:
+- **Security OF the Cloud:** Trách nhiệm của AWS. Bao gồm an toàn vật lý của các datacenter, máy chủ, đường truyền mạng và tầng ảo hóa Nitro Hypervisor.
+- **Security IN the Cloud:** Trách nhiệm của khách hàng. Bao gồm quản lý người dùng và quyền truy cập (IAM), cấu hình tường lửa (security group), mã hóa dữ liệu, cập nhật bản vá cho máy ảo và kiểm soát dữ liệu.
 
-Mô hình trách nhiệm chung thường được tóm tắt bằng câu châm ngôn kinh điển của AWS:
-- **Security OF the Cloud (Bảo mật CỦA đám mây):** Thuộc về **AWS**. Bao gồm an ninh vật lý của các Data Center, hệ thống máy chủ vật lý, cáp mạng ngầm, máy phát điện dự phòng, và tầng phần mềm ảo hóa (Nitro Hypervisor). AWS cam kết đạt các chứng chỉ khắt khe như SOC 1/2/3, ISO 27001, PCI-DSS.
-- **Security IN the Cloud (Bảo mật TRONG đám mây):** Thuộc về **Khách hàng**. Bao gồm cấu hình phân quyền IAM, mã hóa dữ liệu lưu trữ và truyền tải, cấu hình tường lửa Security Group/NACL, quản lý vòng đời tài khoản và vá lỗi hệ điều hành trên các máy ảo.
+Phần lớn sự cố rò rỉ dữ liệu trên cloud không xuất phát từ việc hạ tầng AWS bị xâm nhập, mà đến từ **cấu hình sai phía khách hàng**: mở S3 bucket cho mọi người đọc, gán quyền IAM quá rộng, hoặc để lộ access key trên kho mã nguồn công khai.
 
-### Ranh giới trách nhiệm trên các dịch vụ cụ thể:
+### Ranh giới trách nhiệm trên các dịch vụ thường gặp:
 
-| Dịch vụ AWS | AWS chịu trách nhiệm | Khách hàng (SOC & Cloud Engineer) chịu trách nhiệm |
-|---|---|---|
-| **Amazon EC2** | Phần cứng, Hypervisor, mạng vật lý. | Patch lỗ hổng OS (Windows/Linux), cài đặt EDR/Antivirus, cấu hình Security Group, quản lý SSH Key Pair, chống bruteforce. |
-| **Amazon S3** | Ổ đĩa vật lý, tính toàn vẹn phần cứng, độ sẵn sàng (99.999999999% durability). | Phân quyền Bucket Policy, bật S3 Block Public Access, bật SSE mã hóa, bật Versioning & MFA Delete, giám sát Data Events. |
-| **Amazon RDS** | Bảo trì OS của máy chủ DB, sao lưu tự động phần cứng, cập nhật minor version của DBMS. | Cấu hình tham số DB, quản lý tài khoản DB (master password, user grants), mã hóa TDE, cấu hình subnet nhóm (không đặt ở Public Subnet). |
-| **AWS Lambda** | Môi trường runtime (Python/Nodejs container), cấp phát compute khi có request. | Kiểm tra code an toàn (chống SQLi, SSRF), phân quyền tối thiểu cho **Execution Role**, quản lý biến môi trường nhạy cảm (Environment Secrets). |
-| **Amazon EKS** | Control Plane của Kubernetes (Kube-apiserver, etcd, controller manager). | Bảo mật Worker Nodes, container image vulnerabilities, Network Policies, RBAC nội bộ của Kubernetes, Service Account tokens. |
+- **Amazon EC2:** AWS chịu trách nhiệm về phần cứng và hypervisor. Khách hàng phải tự cấu hình security group, tự cập nhật bản vá cho Windows/Linux, quản lý SSH key pair và cài đặt giải pháp endpoint security (EDR/antivirus).
+- **Amazon S3:** AWS đảm bảo độ bền của đĩa cứng và tính sẵn sàng của hạ tầng. Khách hàng chịu trách nhiệm cấu hình bucket policy, bật Block Public Access, bật mã hóa dữ liệu và kiểm soát ai có quyền truy cập.
+- **Amazon RDS:** AWS lo việc bảo trì hệ điều hành máy chủ và backup phần cứng. Khách hàng chịu trách nhiệm đặt mật khẩu tài khoản DB, phân quyền database, không đặt database ở public subnet và cấu hình security group phù hợp.
+- **AWS Lambda:** AWS lo môi trường runtime (container thực thi code) và mở rộng tài nguyên. Khách hàng chịu trách nhiệm bảo đảm code không có lỗ hổng (như command injection hay SSRF) và giới hạn quyền cho execution role ở mức tối thiểu.
 
 ---
 
-## 5. Hạ tầng Toàn cầu của AWS & Chiến lược Giám sát Địa lý (Geo-baselining)
+## 5. Hạ tầng toàn cầu và rủi ro từ region lạ
 
-Hạ tầng toàn cầu của AWS được tổ chức thành 3 cấp độ:
-1. **Region (Khu vực địa lý):** Một vùng địa lý độc lập chứa nhiều Availability Zone (ví dụ: `ap-southeast-1` tại Singapore, `us-east-1` tại N. Virginia).
-2. **Availability Zone (AZ):** Một hoặc nhiều trung tâm dữ liệu riêng biệt về nguồn điện, làm mát và mạng trong cùng một Region, kết nối với nhau bằng mạng cáp quang băng thông cực cao với độ trễ cực thấp.
-3. **Edge Location (Điểm biên):** Mạng lưới toàn cầu phục vụ dịch vụ phân phối nội dung (CloudFront) và định tuyến DNS (Route 53).
+Hạ tầng toàn cầu của AWS được chia thành:
+- **Region:** Khu vực địa lý độc lập (như `ap-southeast-1` tại Singapore, `us-east-1` tại N. Virginia). Dữ liệu không tự động rời khỏi một region nếu khách hàng không cấu hình sao chép.
+- **Availability Zone (AZ):** Một hoặc nhiều datacenter tách biệt về nguồn điện và mạng trong cùng một region, kết nối với nhau bằng đường truyền độ trễ cực thấp để triển khai giải pháp dự phòng (high availability).
+- **Edge Location:** Điểm hiện diện biên phục vụ mạng phân phối nội dung (CloudFront) và dịch vụ DNS (Route 53).
 
-```
-   ┌────────────────────────────────────────────────────────┐
-   │             AWS REGION (vd: ap-southeast-1)            │
-   │                                                        │
-   │  ┌──────────────────┐            ┌──────────────────┐  │
-   │  │       AZ-1a      │   Cáp quang│       AZ-1b      │  │
-   │  │  (Data Center 1) │◄──────────►│  (Data Center 2) │  │
-   │  └──────────────────┘  Độ trễ thấp└──────────────────┘  │
-   │           ▲                               ▲            │
-   │           └──────────────┬────────────────┘            │
-   │                          ▼                             │
-   │                 ┌──────────────────┐                   │
-   │                 │       AZ-1c      │                   │
-   │                 │  (Data Center 3) │                   │
-   │                 └──────────────────┘                   │
-   └────────────────────────────────────────────────────────┘
-```
+### Rủi ro từ region lạ đối với SOC
 
-### Điểm nhìn SOC: Hiểm họa từ "Region lạ" (Unapproved Regions)
+Nhiều tổ chức tại Việt Nam chỉ triển khai hệ thống ở một hoặc hai region lân cận (thường là `ap-southeast-1` Singapore hoặc `ap-east-1` Hong Kong). Tuy nhiên, mặc định một tài khoản AWS vẫn cho phép khởi tạo tài nguyên ở hầu hết các region khác trên thế giới.
 
-Doanh nghiệp Việt Nam thông thường chỉ triển khai hạ tầng ở 1 đến 2 Region lân cận (phổ biến nhất là `ap-southeast-1` Singapore hoặc `ap-east-1` Hong Kong). Tuy nhiên, tài khoản AWS theo mặc định **cho phép khởi tạo tài nguyên ở hầu hết các Region trên toàn cầu**.
-
-Kẻ tấn công sau khi đánh cắp được Access Key thường có hành vi tinh vi:
-- **Tránh né tầm ngắm của SOC:** Chúng sẽ không tạo máy ảo tại Singapore (nơi kỹ sư và SOC đang theo dõi chặt chẽ), mà âm thầm chuyển sang các Region xa xôi ít ai để ý như `me-central-1` (Trung Đông), `af-south-1` (Nam Phi), hoặc `eu-north-1` (Stockholm).
-- Tại đó, kẻ tấn công kích hoạt các dòng EC2 đắt tiền chuyên tính toán (như dòng `c5.24xlarge` hoặc GPU `g4dn.metal`) để tiến hành đào tiền mã hóa (Cryptomining) hoặc thực hiện quét mạng (Network Scanning).
-- Đến cuối tháng, doanh nghiệp mới phát hiện khi nhận được hóa đơn hàng chục nghìn USD từ AWS.
-
-### Biện pháp Kỹ thuật Phòng thủ & Giám sát:
-
-1. **Thiết lập Service Control Policy (SCP) khóa cứng Region:** Áp dụng cho cấp tổ chức (AWS Organizations) để cấm hoàn toàn mọi API call ngoài danh sách Region được duyệt.
+Kẻ tấn công sau khi lấy được credential thường không tạo máy chủ ở Singapore vì biết đội ngũ kỹ thuật đang theo dõi sát sao tại đó. Thay vào đó, chúng âm thầm chuyển sang các region xa xôi ít được để ý như `af-south-1` (Cape Town) hay `me-central-1` (UAE) để bật các dòng EC2 cấu hình cao phục vụ đào coin.
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "DenyAllOutsideApprovedRegions",
+      "Sid": "DenyUnapprovedRegions",
       "Effect": "Deny",
       "NotAction": [
         "iam:*",
@@ -173,125 +129,86 @@ Kẻ tấn công sau khi đánh cắp được Access Key thường có hành vi
   ]
 }
 ```
-*(Lưu ý: Các dịch vụ toàn cầu như IAM, Route 53, CloudFront bắt buộc phải đưa vào `NotAction` vì chúng hoạt động tại endpoint toàn cầu `us-east-1`).*
 
-2. **Detection Rule phát hiện hoạt động ngoài Region:** Giám sát trường `awsRegion` trong CloudTrail log. Mọi request có `awsRegion != "ap-southeast-1"` và không thuộc dịch vụ Global phải kích hoạt cảnh báo High Severity cho SOC ngay lập tức.
+*Lưu ý: Các dịch vụ toàn cầu (global services) như IAM hay Route 53 cần được đưa vào danh sách ngoại lệ `NotAction` vì chúng hoạt động tại endpoint chung us-east-1.*
+
+Về mặt giám sát, SOC cần theo dõi trường `awsRegion` trong CloudTrail. Mọi thao tác quản trị xuất hiện ở region nằm ngoài danh sách được duyệt cần được coi là bất thường và gửi cảnh báo để xác minh.
 
 ---
 
-## 6. Các Phương thức Tương tác với AWS và Dấu vết Kiểm toán
+## 6. Các cách tương tác với AWS và dấu vết trong log
 
-Dù người dùng sử dụng phương tiện nào, mọi tương tác với AWS đều được chuyển thành **HTTPS REST API Call** tới AWS Control Plane:
+Dù người dùng sử dụng công cụ nào, mọi thao tác tương tác với AWS đều được chuyển đổi thành HTTPS REST API call tới control plane:
 
-| Phương thức tương tác | Bản chất kỹ thuật | Giá trị trường `userAgent` trong CloudTrail | Dấu hiệu phân tích cho SOC |
+| Phương thức | Bản chất | User-Agent thường thấy trong log | Lưu ý cho SOC |
 |---|---|---|---|
-| **AWS Management Console** | Giao diện web chạy qua trình duyệt, gọi API nội bộ bằng session cookie/token. | Chuỗi trình duyệt thực tế, ví dụ: `Mozilla/5.0 (Windows NT 10.0; Win64; x64)...` kèm `signin.amazonaws.com` | Thường có trường `sessionContext` thể hiện phiên đăng nhập console, có MFA status. |
-| **AWS CLI** | Ứng dụng dòng lệnh viết bằng Python, sử dụng Access Key tĩnh hoặc STS temporary token. | Bắt đầu bằng `aws-cli/... Python/... Windows/... prompt/off` | Thường xuất hiện trong các tác vụ quản trị tự động hoặc hành vi của sysadmin/attacker. |
-| **AWS SDK (Boto3, Go, Java...)** | Ứng dụng nghiệp vụ gọi API tự động qua thư viện lập trình. | `Boto3/1.26.x Python/3.9.x Linux/...` | Nếu một IAM User người thật lại xuất hiện userAgent là `Boto3` thực hiện xóa log thì đó là dấu hiệu bất thường. |
-| **Công cụ Tấn công / Recon** | Các tool tự động của Red Team/Attacker (Pacu, ScoutSuite, CloudFox, Kali). | Thường để lộ header mặc định hoặc chỉnh sửa thô vụng (ví dụ `Kali`, `python-requests`, `curl`). | Kích hoạt ngay alert **PenTest:IAMUser/Tools** trong SIEM/GuardDuty. |
+| **AWS Management Console** | Giao diện web qua trình duyệt, gọi API nội bộ bằng session cookie. | Chuỗi User-Agent của trình duyệt thông thường kèm `signin.amazonaws.com` | Thường có thông tin đăng nhập console, trạng thái MFA trong `sessionContext`. |
+| **AWS CLI** | Dòng lệnh qua terminal, dùng access key tĩnh hoặc STS token. | `aws-cli/2.x ... Python/3.x ...` | Phổ biến trong tác vụ quản trị hàng ngày, CI/CD hoặc hành vi của attacker. |
+| **AWS SDK** (Boto3, Go, Java...) | Thư viện lập trình gọi API từ code ứng dụng. | `Boto3/1.x ... Python/3.x ...` | Cần lưu ý nếu một IAM user thông thường đột ngột xuất hiện User-Agent là SDK gọi các API xóa tài nguyên. |
+| **Công cụ pentest / scanning** | Các công cụ tự động (Pacu, ScoutSuite, CloudFox, Kali). | Chứa chuỗi nhận diện như `Kali`, `python-requests`, `curl` hoặc chuỗi bị sửa vụng | Dấu hiệu rõ ràng của hoạt động do thám hoặc pentest cần kiểm tra ngay. |
 
 ---
 
-## 7. Bề mặt Tấn công của 7 Dịch vụ AWS Cốt lõi đối với SOC
+## 7. Bề mặt tấn công của 7 dịch vụ AWS cốt lõi
 
-Hiểu rõ kiến trúc và rủi ro an ninh của từng dịch vụ là tiền đề để SOC Analyst phán đoán mục đích của kẻ tấn công trong chuỗi hành vi (Kill Chain):
+### 7.1 IAM (Identity and Access Management)
+- **Root account:** Tài khoản có toàn quyền tuyệt đối trên tenant. Bất kỳ thao tác nào từ `userIdentity.type = "Root"` đều cần được cảnh báo mức độ cao.
+- **Access key tĩnh vs credential tạm thời:** Access key tĩnh (`AKIA...`) tồn tại vĩnh viễn cho đến khi bị xóa, rất dễ bị lộ lọt qua commit mã nguồn. Credential tạm thời do STS sinh ra (`ASIA...`) có thời hạn ngắn hơn nên an toàn hơn.
 
-```
-       BỀ MẶT TẤN CÔNG CLOUD CỐT LÕI (ATTACK SURFACES)
- ┌───────────────────────────────────────────────────────────────┐
- │ [IAM]: Chiếm quyền, tạo Backdoor Key, leo thang đặc quyền     │
- ├───────────────────────────────────────────────────────────────┤
- │ [EC2/EBS]: RCE Webapp, trộm token IMDS, lấy cắp Snapshot      │
- ├───────────────────────────────────────────────────────────────┤
- │ [S3]: Rò rỉ dữ liệu qua Public Bucket, mã hóa Ransomware      │
- ├───────────────────────────────────────────────────────────────┤
- │ [VPC]: Mở Security Group 0.0.0.0/0, bypass kiểm soát mạng     │
- ├───────────────────────────────────────────────────────────────┤
- │ [RDS]: Exfiltrate dữ liệu, tạo public snapshot cross-account  │
- ├───────────────────────────────────────────────────────────────┤
- │ [Lambda]: Chèn backdoor code, lạm dụng Execution Role         │
- ├───────────────────────────────────────────────────────────────┤
- │ [CloudWatch/CloudTrail]: Tắt logging, xóa Trail che dấu vết   │
- └───────────────────────────────────────────────────────────────┘
-```
+### 7.2 Amazon EC2 và EBS
+- **Security group:** Tường lửa cấp instance hoạt động theo cơ chế stateful (cho phép chiều vào thì tự động mở chiều ra tương ứng). Lỗi phổ biến nhất là mở cổng quản trị `0.0.0.0/0` cho SSH (port 22) hoặc RDP (port 3389).
+- **EBS snapshot:** Bản sao lưu ổ đĩa. Kẻ tấn công có thể dùng `ModifySnapshotAttribute` để chia sẻ snapshot ổ đĩa sang tài khoản khác nhằm trích xuất dữ liệu mà không cần đụng vào máy chủ đang chạy.
 
-### 7.1 IAM (Identity and Access Management) — Bề mặt Rủi ro Tối thượng
-- **Root Account:** Tài khoản tối cao của tenant. Không có cơ chế nào giới hạn được Root (kể cả SCP hay Permission Boundary). Nếu Root bị lộ mật khẩu và không có MFA, toàn bộ doanh nghiệp rơi vào tay kẻ tấn công. SOC phải đặt alert mức **CRITICAL** cho bất kỳ hành động nào từ `userIdentity.type == "Root"`.
-- **Permanent Access Keys vs Temporary Credentials:** Access Key tĩnh (`AKIA...`) tồn tại vĩnh viễn cho đến khi bị xóa, thường bị dev commit nhầm lên GitHub. Trong khi đó, Temporary Credentials (`ASIA...`) do AWS STS sinh ra chỉ có hạn từ 15 phút đến 12 giờ.
+### 7.3 Amazon S3
+- **Quyền truy cập kết hợp:** S3 chịu sự kiểm soát đồng thời từ IAM policy, bucket policy và ACL.
+- **Rủi ro rò rỉ dữ liệu:** Bucket policy cấp quyền đọc công khai cho mọi người (`Principal: "*"`).
+- **Rủi ro phá hoại dữ liệu:** Kẻ tấn công gán policy deny toàn bộ quyền quản trị hoặc kích hoạt lifecycle rule để xóa nhanh các version dữ liệu cũ.
 
-### 7.2 Amazon EC2 & EBS — Máy chủ ảo và Ổ đĩa lưu trữ
-- **Security Groups (SG):** Tường lửa ảo cấp độ instance, hoạt động **stateful** (cho phép chiều vào thì tự động mở chiều ra tương ứng). Lỗi phổ biến nhất: Mở cổng quản trị `0.0.0.0/0` cho TCP 22 (SSH) hoặc TCP 3389 (RDP).
-- **EBS Snapshots:** Bản sao lưu dữ liệu ổ cứng. Attacker có thể gọi API `ModifySnapshotAttribute` để chia sẻ snapshot ổ đĩa nhạy cảm sang một tài khoản AWS khác của chúng, từ đó dump database ngoại tuyến mà không cần chạm vào máy chủ.
+### 7.4 Amazon VPC
+- **Public vs private subnet:** Public subnet có route trỏ ra Internet Gateway. Private subnet không nhận kết nối trực tiếp từ Internet mà phải đi ra ngoài qua NAT Gateway.
+- **NACL:** Tường lửa cấp subnet hoạt động stateless (phải cấu hình riêng cả chiều vào và chiều ra). Thường dùng để chặn nhanh dải IP độc hại khi có sự cố.
+- **VPC Peering:** Đường nối giữa 2 VPC. Nếu subnet dev kết nối peering sang subnet prod mà không kiểm soát chặt chẽ, kẻ tấn công có thể dùng làm bàn đạp di chuyển ngang.
 
-### 7.3 Amazon S3 — Lưu trữ Đối tượng
-- **Cơ chế phân quyền phức hợp:** Quyền truy cập S3 được kiểm soát đồng thời bởi: IAM Policy (cấp cho user), Bucket Policy (gắn trên bucket), và Object ACL (gắn trên từng file).
-- **Rủi ro rò rỉ dữ liệu:** Cấu hình sai Bucket Policy với `Principal: "*"` và `Action: "s3:GetObject"`.
-- **S3 Ransomware:** Kẻ tấn công gọi `PutBucketPolicy` với chính sách từ chối toàn bộ (`Deny`) quyền của người quản trị, hoặc kích hoạt S3 Lifecycle Rule để xóa vĩnh viễn toàn bộ object version.
+### 7.5 Amazon RDS
+- **Publicly Accessible:** Cờ cấu hình nếu bật `Yes` sẽ cấp IP public cho database và cho phép kết nối trực tiếp từ Internet nếu security group mở cổng tương ứng.
+- **Database snapshot:** Tương tự EBS, snapshot database có thể bị chia sẻ trái phép sang tài khoản ngoài.
 
-### 7.4 Amazon VPC — Mạng Đám mây Riêng ảo
-- **Subnet công khai vs Subnet riêng (Public vs Private Subnet):** Public subnet có route trỏ ra Internet Gateway (`igw-xxxx`). Private subnet phải đi ra ngoài Internet thông qua NAT Gateway (`nat-xxxx`) và không thể nhận kết nối trực tiếp từ Internet.
-- **NACL (Network Access Control List):** Tường lửa cấp độ subnet, hoạt động **stateless** (phải cấu hình tường minh cả chiều vào lẫn chiều ra).
-- **VPC Peering:** Đường kết nối trực tiếp giữa 2 VPC. Nếu một VPC môi trường Dev bị chiếm quyền và có kết nối Peering tới VPC Prod mà không có kiểm soát chặt chẽ, attacker có thể di chuyển ngang vào hệ thống lõi.
+### 7.6 AWS Lambda
+- **Execution role:** Quyền hạn được gán cho hàm Lambda khi chạy. Nếu role này có quyền quản trị quá rộng, kẻ tấn công khai thác được code injection trong hàm sẽ chiếm luôn quyền của role đó trên tài khoản AWS.
+- **Persistence:** Kẻ tấn công có thể sửa code của hàm Lambda hiện có hoặc tạo thêm trigger mới để duy trì quyền truy cập.
 
-### 7.5 Amazon RDS — Cơ sở dữ liệu Quản lý
-- **Publicly Accessible:** Cờ cấu hình nguy hiểm nhất trên RDS. Nếu bị tick chọn `Yes`, instance DB sẽ được cấp phát Public IP và chấp nhận kết nối trực tiếp từ Internet nếu Security Group mở cổng 3306/5432.
-- **Database Snapshots:** Tương tự EBS, RDS snapshot có thể bị share cross-account hoặc chuyển thành public snapshot.
-
-### 7.6 AWS Lambda — Điện toán Không máy chủ (Serverless)
-- **Execution Role:** Mỗi hàm Lambda được gán một IAM Role để tương tác với các dịch vụ khác (ví dụ đọc S3, ghi DynamoDB). Nếu Role này được cấp quyền quá rộng (như `AdministratorAccess`), attacker chỉ cần tìm ra lỗ hổng Code Injection / Command Injection trong code Lambda là sẽ có toàn quyền trên AWS account.
-- **Persistence:** Attacker có thể chèn backdoor vào source code của Lambda hoặc tạo một Lambda trigger mới để tự động cấp lại quyền khi bị xóa.
-
-### 7.7 Amazon CloudWatch & CloudTrail — Trụ cột Giám sát
-- **CloudTrail:** Ghi lại **toàn bộ API calls**. Kẻ tấn công luôn tìm cách vô hiệu hóa dịch vụ này (`StopLogging`, `DeleteTrail`) đầu tiên để xóa dấu vết (Defense Evasion).
-- **CloudWatch Logs:** Nơi tập hợp log hệ điều hành, log ứng dụng và metrics. Nếu dung lượng đẩy về đột ngột giảm về 0, đó có thể là dấu hiệu agent ghi log trên máy chủ đã bị attacker gỡ bỏ.
+### 7.7 Amazon CloudWatch và CloudTrail
+- **CloudTrail:** Ghi nhận toàn bộ API call. Kẻ tấn công thường tìm cách gọi `StopLogging` hoặc `DeleteTrail` đầu tiên để che giấu dấu vết.
+- **CloudWatch Logs:** Nơi tập trung log ứng dụng và máy chủ. Lượng log đột ngột giảm mạnh có thể là dấu hiệu agent ghi log trên máy chủ đã bị tắt.
 
 ---
 
-## 8. Khái niệm Định danh & Quản trị Doanh nghiệp
+## 8. Khái niệm định danh và quản trị tài khoản
 
-- **Amazon Resource Name (ARN):** Chuỗi định danh duy nhất trên toàn cầu cho mọi tài nguyên AWS. Cấu trúc chuẩn:
+- **ARN (Amazon Resource Name):** Định danh duy nhất toàn cầu cho tài nguyên AWS theo cấu trúc chuẩn:
   ```
   arn:partition:service:region:account-id:resource-type/resource-id
   ```
-  *Ví dụ:* `arn:aws:s3:::financial-reports-2026/q3-audit.xlsx` hoặc `arn:aws:iam::123456789012:role/DevOpsAdminRole`
-- **Account ID:** Dãy 12 chữ số đại diện cho một tài khoản AWS độc lập. Trong điều tra, SOC cần xác định xem một API call xuất phát từ nội bộ Account ID của doanh nghiệp hay từ một External Account lạ.
-- **AWS Organizations:** Dịch vụ quản lý nhiều tài khoản theo cấu trúc cây thư mục (Organizational Units - OUs), cho phép áp dụng Service Control Policies (SCPs) từ trên đỉnh xuống.
-- **Tagging Strategy cho SecOps:** Mọi tài nguyên chuẩn mực đều phải được gắn thẻ (Tags) như `Environment: Production`, `DataClassification: Confidential`, `Owner: SecurityTeam`. Khi phát hiện một EC2 lạ không có tag hoặc có tag bất thường, khả năng cao đó là tài nguyên do kẻ tấn công tự ý tạo dựng.
+  Ví dụ: `arn:aws:s3:::company-finance-bucket/reports.xlsx` hoặc `arn:aws:iam::123456789012:role/AppRole`
+- **Account ID:** Dãy 12 chữ số đại diện cho một tài khoản AWS. Trong điều tra, SOC cần xác định một hành động đến từ tài khoản nội bộ hay từ một account lạ bên ngoài.
+- **AWS Organizations:** Dịch vụ quản lý nhiều tài khoản theo mô hình cây thư mục, cho phép áp dụng Service Control Policy (SCP) từ trên xuống.
+- **Tagging:** Gắn nhãn tài nguyên (`Environment: Prod`, `Owner: SecOps`). Tài nguyên lạ xuất hiện mà không có tag chuẩn thường là dấu hiệu nghi vấn.
 
 ---
 
-## 9. Hướng dẫn Dựng Lab Cá nhân & Bài tập Tự luyện cho SOC
+## 9. Hướng dẫn dựng lab và bài tập thực hành
 
-Để nắm vững các khái niệm trên, bạn nên tự tay thực hiện các bước sau trên một tài khoản AWS Free Tier cá nhân:
+Các bước thực hành trên tài khoản AWS Free Tier cá nhân:
 
-- [ ] **Bước 1: Thiết lập An toàn Tuyệt đối cho Root Account:**
-  - Đăng nhập tài khoản Root, kích hoạt ngay **Hardware MFA hoặc Authenticator App MFA**.
-  - Khóa và xóa bỏ hoàn toàn Root Access Keys (nếu có).
-  - Không bao giờ dùng Root để thao tác hàng ngày.
-- [ ] **Bước 2: Tạo IAM Admin User & Cấu hình Budget Alert:**
-  - Tạo IAM User riêng có gắn quyền quản trị, bật MFA.
-  - Cấu hình AWS Budgets: Đặt ngưỡng cảnh báo $1 USD để nhận email ngay khi có phát sinh chi phí bất thường.
-- [ ] **Bước 3: Khám phá CloudTrail Event History:**
-  - Khởi tạo một S3 bucket, sau đó xóa bucket đó.
-  - Truy cập **CloudTrail Console -> Event history**, tìm kiếm theo `Event name`: `CreateBucket` và `DeleteBucket`.
-  - Mở chi tiết định dạng JSON, xác định các trường: `sourceIPAddress`, `userIdentity`, `userAgent`.
-- [ ] **Bước 4: Cài đặt và Xác thực AWS CLI:**
-  - Cài đặt công cụ AWS CLI trên máy cá nhân.
-  - Chạy lệnh kiểm tra định danh:
-    ```bash
-    aws sts get-caller-identity
-    ```
-  - Đối chiếu kết quả trả về (`UserId`, `Account`, `Arn`) với IAM User vừa tạo.
+- [ ] **Bật MFA cho root:** Đăng nhập tài khoản root, bật MFA qua ứng dụng xác thực, không tạo access key tĩnh cho root.
+- [ ] **Tạo IAM admin user và budget alert:** Tạo user riêng có quyền quản trị để làm việc, đặt budget alert ở mức $1 để nhận email ngay khi có chi phí phát sinh ngoài ý muốn.
+- [ ] **Khám phá CloudTrail Event History:** Tạo một S3 bucket rồi xóa bucket đó. Mở CloudTrail console vào mục Event history, tìm sự kiện `CreateBucket` và `DeleteBucket`, xem định dạng JSON của các trường `sourceIPAddress`, `userIdentity` và `userAgent`.
+- [ ] **Cài đặt AWS CLI:** Chạy lệnh `aws sts get-caller-identity` để xác nhận danh tính và account ID hiện tại.
 
 ---
 
-## 10. Bộ Câu hỏi Ôn tập Thực chiến dành cho SOC Analyst
+## 10. Tự kiểm tra và câu hỏi tình huống
 
-1. **Tình huống 1:** Một alert từ hệ thống cảnh báo rằng máy chủ web EC2 của công ty vừa bị hacker khai thác lỗ hổng Web Application. Vì sao việc đầu tiên SOC làm không phải là mở port SSH vào máy để kiểm tra, mà là kiểm tra IAM Role đang gắn trên instance đó?
-   *(Gợi ý: Lỗ hổng SSRF có thể giúp kẻ tấn công trích xuất temporary credentials của instance profile từ metadata service 169.254.169.254).*
-
-2. **Tình huống 2:** Công ty của bạn chỉ hoạt động tại thị trường Việt Nam và đặt máy chủ tại Singapore (`ap-southeast-1`). Trong ca trực đêm, bạn phát hiện một loạt sự kiện `RunInstances` thành công tại Region `sa-east-1` (São Paulo, Brazil). Mức độ nghiêm trọng của sự cố này là gì và dấu hiệu tấn công đặc trưng là gì?
-   *(Gợi ý: Khả năng cao Access Key đã bị rò rỉ và kẻ tấn công đang tiến hành Cryptomining ở Region ngoài tầm giám sát).*
-
-3. **Tình huống 3:** Phân biệt sự khác biệt về mặt bằng chứng pháp lý (Forensic Evidence) giữa việc điều tra sự cố mã độc trên Amazon EC2 so với Amazon RDS?
-   *(Gợi ý: EC2 cho phép trích xuất Disk Snapshot và Memory Dump; RDS là PaaS nên chỉ có thể dựa vào CloudTrail và Database Engine Audit Logs).*
+1. Khi một máy chủ web EC2 bị nghi ngờ có mã độc, tại sao một trong những bước đầu tiên của SOC là kiểm tra IAM role gắn trên instance đó thay vì chỉ quét file trên đĩa?
+2. Nếu doanh nghiệp chỉ đặt hệ thống tại Singapore (`ap-southeast-1`), việc xuất hiện các lệnh `RunInstances` thành công tại `af-south-1` (Nam Phi) gợi ý nguy cơ gì và cần xử lý thế nào?
+3. Tại sao khi điều tra sự cố trên Amazon RDS, SOC không thể SSH vào máy chủ để lấy memory dump như đối với EC2, và dữ liệu điều tra lúc này sẽ lấy từ đâu?

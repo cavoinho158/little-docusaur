@@ -38,6 +38,7 @@ Bộ tài liệu ôn tập các công cụ và quy trình cốt lõi của SOC, 
 | [AWS Cloud Security: Nền tảng](./02-soc-operations/cloud-security/01-aws-cloud-foundations) | Nền tảng Cloud cho SOC, Shared Responsibility Model, bề mặt tấn công 7 dịch vụ AWS cốt lõi | ✅ Mới |
 | [AWS Cloud Security: Tấn công & Kiến trúc](./02-soc-operations/cloud-security/02-cloud-security-architecture-attacks) | IAM logic, IMDSv1/v2 SSRF, 7 kỹ thuật Privilege Escalation, MITRE ATT&CK Cloud matrix | ✅ Mới |
 | [AWS Cloud Security: Giám sát & Ứng phó](./02-soc-operations/cloud-security/03-cloud-soc-detection-monitoring) | Multi-Account Log Vault, giải phẫu CloudTrail/VPC Flow, GuardDuty, 10 Use Cases (SPL/KQL/Athena) & Runbooks | ✅ Mới |
+| [Detection Engineering](./02-soc-operations/detection-engineering) | Vòng đời detection, tư duy detection engineer, precision/recall, các thách thức vận hành và cách xử lý | ✅ Mới |
 
 ---
 
