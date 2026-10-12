@@ -17,14 +17,14 @@ const config = {
   favicon: "img/favicon.ico",
 
   // Set the production url of your site here
-  url: "https://ThienAnUIT2022.github.io",
+  url: "https://cavoinho158.github.io",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/little-docusaur/",
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: "ThienAnUIT2022", // Usually your GitHub org/user name.
+  organizationName: "cavoinho158", // Usually your GitHub org/user name.
   projectName: "little-docusaur", // Usually your repo name.
 
   deploymentBranch: "gh-pages",

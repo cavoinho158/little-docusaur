@@ -5,7 +5,7 @@ sidebar_position: 7
 
 > _"Oáp ~ Buồn ngủ quá đi (￣ ￣|||) hôm qua lỡ thức khuya cày phim quá ..."_ \
 
-Xin chào mọi người nha, hôm nay tôi và cậu ấy học bù cho mấy hôm trước nghỉ và trễ tiến độ. Mọi người còn nhớ Security Frameworks, Controls & Compliance và Security Audits được nhắc đến trước đó không, ở bài [Course1-week2-2](https://thienanuit2022.github.io/little-docusaur/docs/google-cybersec-cert/course1-week2-2) á. Hôm nay tôi và cậu ấy đã được tìm hiểu chi tiết hơn về nội dung này á, 2 chúng tôi cũng dần hiểu được sự liên kết của các thành phần bảo mật và quy trình bảo mật trong tổ chức rồi. Bài hôm nay hơi dài, mọi người cố gắng đọc hết nha.
+Xin chào mọi người nha, hôm nay tôi và cậu ấy học bù cho mấy hôm trước nghỉ và trễ tiến độ. Mọi người còn nhớ Security Frameworks, Controls & Compliance và Security Audits được nhắc đến trước đó không, ở bài [Course1-week2-2](./course1-week2-2) á. Hôm nay tôi và cậu ấy đã được tìm hiểu chi tiết hơn về nội dung này á, 2 chúng tôi cũng dần hiểu được sự liên kết của các thành phần bảo mật và quy trình bảo mật trong tổ chức rồi. Bài hôm nay hơi dài, mọi người cố gắng đọc hết nha.
 
 > _"Cà phê nè" - Cậu ấy nói trong khi đưa tôi ly cà phê sữa nóng thơm phức_ \
 > _"Thank you~ À mà có người mới cảm ơn mấy bài blog của tụi mình á! Họ nói những bài blog tạo động lực cho họ." - Tôi nhận ly cà phê và nói với giọng hớn hở_ \
